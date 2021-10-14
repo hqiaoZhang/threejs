@@ -1,0 +1,158 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="baidu-site-verification" content="sq4c0nNCaH">
+  <meta name="baidu-tc-verification" content="ee46e32c49619d2e51c8748433f7f286">
+  <title>Three.js-webgl地球</title>
+  <link href="http://www.yanhuangxueyuan.com/style.css" rel="stylesheet" type="text/css">
+  <!--引入three.js三维引擎-->
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.min.js"></script>
+  <!-- 引入threejs扩展控件OrbitControls.js -->
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script> 
+  <!-- 引入前端框架vue.js -->
+  <script src="http://www.yanhuangxueyuan.com/js/vue@2.5.16.min.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="http://www.yanhuangxueyuan.com/js/element-ui/index.css">
+    <!-- 引入组件库 -->
+    <script src="http://www.yanhuangxueyuan.com/js/element-ui/index.js"></script>
+    <style>
+      body {
+          /*background-color: #cceeff;*/
+          padding: 0px;
+          margin: 0px; 
+          background-color: #f6f6f6; 
+          overflow: visible;
+        } 
+    </style>
+</head>
+
+<body style="margin: 0px;padding: 0px;">
+
+  <!--<div style="background-color: blue;height: 45px;width: 100%;margin-left: 0px"></div>-->
+  <div id="app"> 
+      <div style="background-color: rgb(246, 246, 246);">
+          <section class="el-container is-vertical"> 
+           <div id="div" style="width: 1215px; height: 881px;"> 
+           </div>
+          </section>
+         </div>
+  </div>
+  
+  <script id="vertexShader" type="x-shader/x-vertex">
+    varying vec2 texCoord;void main(){texCoord = uv;vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );gl_Position = projectionMatrix * mvPosition;}
+  </script>
+  <script id="fragmentShader" type="x-shader/x-fragment">
+    uniform float time;uniform sampler2D texture1;uniform sampler2D texture2;varying vec2 texCoord;uniform float opacity;void main(  ) {vec4 noise = texture2D( texture1, texCoord );vec2 T1 = texCoord + vec2( 1.5, -1.5 ) * time  * 0.01;vec2 T2 = texCoord + vec2( -0.5, 2.0 ) * time *  0.01;T1.x -= noise.r * 2.0;T1.y += noise.g * 4.0;T2.x += noise.g * 0.2;T2.y += noise.b * 0.2;float p = texture2D( texture1, T1 * 2.0 ).a + 0.25;vec4 color = texture2D( texture2, T2 );vec4 temp = color * 2.0 * ( vec4( p, p, p, p ) ) + ( color * color );  gl_FragColor = vec4(temp.rgb,temp.a*opacity);
+    }
+  </script>
+  <script>
+    var scene = new THREE.Scene();
+    var textureLoader = new THREE.TextureLoader();
+    // var textureBack = textureLoader.load("bg.jpg");
+    // scene.background = textureBack;
+    var group = new THREE.Group();
+    var textureSprite = new THREE.TextureLoader().load("./img/light.png");
+    var spriteMaterial = new THREE.SpriteMaterial({
+      map: textureSprite,
+      transparent: true,
+      opacity: 0.6,
+    });
+    var sprite = new THREE.Sprite(spriteMaterial);
+    group.add(sprite);
+    sprite.scale.set(245, 245, 1);
+    var box = new THREE.SphereGeometry(100, 100, 100);
+    var texture = textureLoader.load("./img/Earth.png");
+    var textureNormal = textureLoader.load("./img/EarthNormal.png");
+    var textureSpecular = textureLoader.load("./img/EarthSpec.png");
+    // 创建高光Phong材质,与光照有反应
+    var material = new THREE.MeshPhongMaterial({
+      map: texture,
+      normalMap: textureNormal,
+      normalScale: new THREE.Vector2(2.9, 2.9),
+      specularMap: textureSpecular,
+      transparent: true,
+      opacity: 0.7,
+    });
+    console.log(material.normalScale);
+    var mesh = new THREE.Mesh(box, material);
+    var box2 = new THREE.SphereGeometry(100.001, 100, 100);
+    var texture1 = textureLoader.load("./img/noise.png");
+    var texture2 = textureLoader.load("./img/air2.png");
+    texture1.wrapS = THREE.RepeatWrapping;
+    texture1.wrapT = THREE.RepeatWrapping;
+    texture2.wrapS = THREE.RepeatWrapping;
+    texture2.wrapT = THREE.RepeatWrapping;
+    var uniforms = {
+      time: {
+        value: 1
+      },
+      texture1: {
+        value: texture1
+      },
+      texture2: {
+        value: texture2
+      },
+      opacity: {
+        value: 0.4
+      },
+    };
+    var material2 = new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      vertexShader: document.getElementById("vertexShader").textContent,
+      fragmentShader: document.getElementById("fragmentShader").textContent,
+      transparent: true,
+    });
+    var mesh2 = new THREE.Mesh(box2, material2);
+    group.add(mesh, mesh2);
+    scene.add(group);
+    var posTrack = new THREE.KeyframeTrack(".scale", [0, 10], [0.01, 0.01, 0.01, 1, 1, 1]);
+    var clip = new THREE.AnimationClip("default", 10, [posTrack]);
+    var mixer = new THREE.AnimationMixer();
+    var AnimationAction = mixer.clipAction(clip, group);
+    AnimationAction.loop = THREE.LoopOnce;
+    AnimationAction.clampWhenFinished = true;
+    AnimationAction.play();
+    var directionalLight = new THREE.DirectionalLight(16777215, 0.9);
+    directionalLight.position.set(400, 200, 300);
+    scene.add(directionalLight);
+    var directionalLight2 = new THREE.DirectionalLight(16777215, 0.9);
+    directionalLight2.position.set( - 400, -200, -300);
+    scene.add(directionalLight2);
+    var ambient = new THREE.AmbientLight(16777215, 0.6);
+    scene.add(ambient);
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    var k = width / height;
+    var s = 100;
+    var camera = new THREE.OrthographicCamera( - s * k, s * k, s, -s, 1, 1000);
+    camera.position.set(0, 100, 200);
+    camera.lookAt(scene.position);
+    var renderer = new THREE.WebGLRenderer({
+      antialias: true
+    });
+    renderer.setSize(width, height);
+    document.getElementById("div").appendChild(renderer.domElement);
+    var clock = new THREE.Clock();
+    var clock = new THREE.Clock();
+    function render() {
+      var delta = clock.getDelta();
+      uniforms.time.value += delta;
+      mixer.update(delta);
+      group.rotation.y -= 0.005;
+      renderer.render(scene, camera);
+      requestAnimationFrame(render)
+    }
+    render();
+    var controls = new THREE.OrbitControls(camera);
+    window.onresize = function() {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      k = window.innerWidth / window.innerHeight;
+      camera.left = -s * k;
+      camera.right = s * k;
+      camera.top = s;
+      camera.bottom = -s;
+      camera.updateProjectionMatrix()
+    };
+
+  </script>
+</body>
+</html>

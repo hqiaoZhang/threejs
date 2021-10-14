@@ -1,0 +1,197 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <title>Three.js-webgl动画3D播放器</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden; 
+    }
+
+    .bot {
+      position: absolute;
+      background: rgba(83, 83, 83, 0.2);
+      padding: 10px;
+      border-radius: 5px;
+      bottom: 0px;
+      /* z-index:1 */
+      /* width:270px */
+    }
+
+    [v-cloak] {
+      display: none;
+    }
+
+    #tan {
+      position: absolute;
+      color: #fff;
+      z-index: 102;
+      font-size: 16px;
+      /* background: rgba(2, 4, 27, 0.8); */
+      width: 500px;
+      height: 80px;
+      bottom: 0px;
+    }
+  </style>
+  <!--引入three.js三维引擎-->
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.min.js"></script>
+  <!-- 引入threejs扩展控件OrbitControls.js -->
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- 引入前端框架vue.js -->
+  <script src="http://www.yanhuangxueyuan.com/js/vue@2.5.16.min.js"></script>
+  <!-- vuejs的库element-ui -->
+  <script src="http://www.yanhuangxueyuan.com/js/element-ui/index.js"></script>
+  <!-- element-ui样式 -->
+  <link rel="stylesheet" href="http://www.yanhuangxueyuan.com/js/element-ui/index.css">
+</head>
+
+<body>
+  <div id="app"><div style="position: absolute; width: 400px; left: 407.5px; top: 453.5px;"><div role="progressbar" aria-valuenow="Infinity" aria-valuemin="0" aria-valuemax="100" class="el-progress el-progress--line el-progress--text-inside"><div class="el-progress-bar"><div class="el-progress-bar__outer" style="height: 30px;"><div class="el-progress-bar__inner" style="width: 0%;"><div class="el-progress-bar__innerText">Infinity%</div></div></div></div><!----></div></div> <div id="tan" style="left: 357.5px;"><div style="position: relative;"><div style="position: absolute; left: 0px; top: 19px;"><img src="./img/stop.png" alt="" height="50" width="50"></div> <div style="position: absolute; left: 100px; top: 19px; font-size: 16px; color: rgb(255, 255, 255); width: 400px;">
+          装配进度
+        </div> <div style="position: absolute; left: 180px; top: 10px; font-size: 16px;"><div role="slider" aria-valuemin="0" aria-valuemax="47.2" aria-orientation="horizontal" class="el-slider" aria-valuetext="0" aria-label="slider between 0 and 47.2" style="width: 300px;"><!----><div class="el-slider__runway"><div class="el-slider__bar" style="width: 31.7749%; left: 0%;"></div><div tabindex="0" class="el-slider__button-wrapper" style="left: 31.7749%;"><div class="el-tooltip el-slider__button" aria-describedby="el-tooltip-6098" tabindex="0"></div></div><!----><!----></div></div></div> <div style="position: absolute; left: 100px; top: 49px;">
+          播放速度
+        </div> <div style="position: absolute; left: 180px; top: 40px;"><div role="slider" aria-valuemin="0" aria-valuemax="10" aria-orientation="horizontal" class="el-slider" aria-valuetext="3.5" aria-label="slider between 0 and 10" style="width: 300px;"><!----><div class="el-slider__runway"><div class="el-slider__bar" style="width: 35%; left: 0%;"></div><div tabindex="0" class="el-slider__button-wrapper" style="left: 35%;"><div class="el-tooltip el-slider__button" aria-describedby="el-tooltip-7692" tabindex="0"></div></div><!----><!----></div></div></div></div></div></div>
+
+  <script>
+
+
+        var scene = new THREE.Scene();
+
+        var action = null;
+
+        let mixer = null;
+        var loader = new THREE.ObjectLoader();
+        let timeArr = []
+
+        loader.load("./pump/pump.json", json,onProgress);
+
+        function json(Object3D) {
+          scene.add(Object3D);
+          mixer = new THREE.AnimationMixer(Object3D);
+          action = mixer.clipAction(Object3D.animations[0]);
+          action.timeScale = vm.timeScale 
+          action.play()
+          Object3D.animations[0].duration=47.2 
+
+        }
+        function onProgress(xhr) { 
+          console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+
+          vm.$data.progressValue = Math.floor(xhr.loaded / xhr.total * 100)
+          if(vm.progressValue===100){
+            vm.progressBool=false
+          } 
+        }
+
+
+
+
+        var point = new THREE.PointLight(0xffffff);
+        point.position.set(400, 200, 300);
+        scene.add(point);
+
+        var ambient = new THREE.AmbientLight(0x888888);
+        scene.add(ambient);
+
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        var k = width / height;
+        var s = 4;
+
+        var camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000); 
+        camera.position.set(-5.00, 3.43, 11.31);  
+        var renderer = new THREE.WebGLRenderer({
+
+          antialias: true
+        });
+        renderer.setSize(width, height);
+
+        renderer.setClearColor(0x1111111, 1);
+        document.body.appendChild(renderer.domElement);
+        let clock = new THREE.Clock();
+        var FPS = 30;
+        var rtime = 1 / FPS;
+        var timeS = 0;
+        function render() {
+
+          var rinter = clock.getDelta();
+          timeS = timeS + rinter;
+          if (timeS > rtime) {
+            renderer.render(scene, camera);
+            timeS = 0;
+
+          }
+          if (action) {
+            vm.time = action.time
+
+          }
+
+          if (mixer) {
+            mixer.update(rinter);
+
+          }
+
+          requestAnimationFrame(render);
+        }
+        render();
+        var controls = new THREE.OrbitControls(camera);
+        controls.enablePan = false;
+        controls.enableRotate = false;
+        camera.lookAt(new THREE.Vector3(-1.22, 2.18, 4.58));
+        var vm = new Vue({
+          el: "#app",
+          data: {
+            progressValue: 0,
+            progressBool: true,
+            palyBool: true,
+            timeScale: 3.5,
+            message: "WebGL可视化编辑器",
+            width: window.innerWidth,
+            height: window.innerHeight,
+            time: 0,
+
+          },
+          methods: {
+            play: function() {
+              if (this.palyBool) {
+                this.palyBool = false
+                action.paused = true
+              } else {
+                this.palyBool = true
+                action.paused = false
+              }
+
+            },
+            paused: function() {
+              clip.paused = true
+            }
+          },
+          watch: {
+            timeScale: function(value) {
+              console.log(value);
+              action.timeScale = value
+            },
+            time: function(value) {
+              action.time = value;
+            },
+          },
+
+        })
+        window.onresize = function() {
+
+          vm.width = window.innerWidth;
+          vm.height = window.innerHeight;
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          k = (window.innerWidth) / (window.innerHeight);
+          camera.left = -s * k;
+          camera.right = s * k;
+          camera.top = s;
+          camera.bottom = -s;
+          camera.updateProjectionMatrix();
+        };
+  </script><canvas width="1215" height="937" style="width: 1215px; height: 937px;"></canvas>
+
+
+
+
+</body></html>

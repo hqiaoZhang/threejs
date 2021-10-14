@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>OBJLoader</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      /* 隐藏body窗口区域滚动条 */
+    }
+  </style>
+  <!--引入three.js三维引擎-->
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.js"></script> 
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/OBJLoader.js"></script>
+  <!-- <script src="./three.js"></script> -->
+  <!-- <script src="http://www.yanhuangxueyuan.com/threejs/build/three.js"></script> -->
+</head>
+
+<body>
+  <script>
+   var width = window.innerWidth; //窗口宽度
+    var height = window.innerHeight; //窗口高度  
+  /**
+     * 创建场景对象Scene
+     */
+     var scene = new THREE.Scene();
+      /**
+     * OBJ文件加载  只加载obj文件中的几何信息，不加载材质文件.mtl
+     */
+    var loader = new THREE.OBJLoader();
+    // 没有材质文件，系统自动设置Phong网格材质
+    loader.load('model/003.obj',function (obj) {
+      // 控制台查看返回结构：包含一个网格模型Mesh的组Group
+      console.log(obj);
+      // 查看加载器生成的材质对象：MeshPhongMaterial
+      console.log(obj.children[0].material);
+      scene.add(obj);
+
+      //创建相机对象
+      var k = width / height; //窗口宽高比
+    var s = 200; //三维场景显示范围控制系数，系数越大，显示的范围越大
+    var camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+    camera.position.set(200, 300, 200); //设置相机位置
+    camera.lookAt(scene.position); //设置相机方向(指向的场景对象)
+
+       /**
+     * 创建渲染器对象
+     */
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize(width, height);//设置渲染区域尺寸
+    renderer.setClearColor(0xb9d3ff, 1); //设置背景颜色
+    document.body.appendChild(renderer.domElement); //body元素中插入canvas对象
+    //执行渲染操作   指定场景、相机作为参数
+    renderer.render(scene, camera);
+
+    })
+
+  </script>
+</body>
+</html>

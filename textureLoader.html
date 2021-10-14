@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>TextureLoader</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      /* 隐藏body窗口区域滚动条 */
+    }
+  </style>
+  <!--引入three.js三维引擎-->
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.js"></script> 
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script>
+  <!-- <script src="./three.js"></script> -->
+  <!-- <script src="http://www.yanhuangxueyuan.com/threejs/build/three.js"></script> -->
+</head>
+
+<body>
+  <script>
+    /**
+     * 创建场景对象Scene
+     */
+    var scene = new THREE.Scene();
+    
+    var texture = new THREE.TextureLoader().load('./img/lan2.png'); // 加载围栏
+    // 设置阵列模式   默认ClampToEdgeWrapping  RepeatWrapping：阵列  镜像阵列：MirroredRepeatWrapping
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    // uv两个方向纹理重复数量
+    texture.repeat.set(4, 2);
+    // 设置纹理旋转角度
+    texture.rotation = Math.PI/4;
+    // 设置纹理的旋转中心，默认(0,0)
+    texture.center.set(0.5,0.5);
+
+    // 偏移效果  偏移范围-1~1
+      texture.offset = new THREE.Vector2(0.5, 0.1)
+
+     var geometry = new THREE.BoxGeometry(100, 100, 100); //创建一个立方体几何对象Geometry
+    var material = new THREE.MeshLambertMaterial({
+      // color: 0x0000ff
+      //  side: THREE.DoubleSide,
+          map: texture, //设置颜色贴图属性值
+          // transparent: true,
+    }); //材质对象Material
+    var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+    scene.add(mesh); //网格模型添加到场景中
+
+    /**
+    * 创建一个地面
+    */
+    var geometry = new THREE.PlaneGeometry(500, 500); //矩形平面
+    // 加载树纹理贴图
+    var texture = new THREE.TextureLoader().load("./img/grass.jpg");
+    // 设置阵列
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    // uv两个方向纹理重复数量
+    texture.repeat.set(10, 10);
+    var material = new THREE.MeshLambertMaterial({
+      map: texture,
+    });
+    var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
+    scene.add(mesh); //网格模型添加到场景中
+    mesh.rotateX(-Math.PI / 2);
+
+
+    /**
+     * 光源设置
+     */
+    //点光源
+    var point = new THREE.PointLight(0xffffff);
+    point.position.set(400, 200, 300); //点光源位置
+    scene.add(point); //点光源添加到场景中
+    // 点光源2  位置和point关于原点对称
+    var point2 = new THREE.PointLight(0xffffff);
+    point2.position.set(-400, -200, -300); //点光源位置
+    scene.add(point2); //点光源添加到场景中
+    //环境光
+    var ambient = new THREE.AmbientLight(0x444444);
+    scene.add(ambient);
+
+    
+    // console.log(scene)
+    // console.log(scene.children)
+    /**
+     * 相机设置
+     */
+    var width = window.innerWidth; //窗口宽度
+    var height = window.innerHeight; //窗口高度
+    var k = width / height; //窗口宽高比
+    var s = 300; //三维场景显示范围控制系数，系数越大，显示的范围越大
+    //创建相机对象
+    var camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+    camera.position.set(200, 300, 200); //设置相机位置
+    camera.lookAt(scene.position); //设置相机方向(指向的场景对象)
+    /**
+     * 创建渲染器对象
+     */
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize(width, height);//设置渲染区域尺寸
+    renderer.setClearColor(0xb9d3ff, 1); //设置背景颜色
+    document.body.appendChild(renderer.domElement); //body元素中插入canvas对象
+    //执行渲染操作   指定场景、相机作为参数
+    function render() {
+      renderer.render(scene,camera);//执行渲染操作
+  }
+render();
+var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+controls.addEventListener('change', render);//监听鼠标、键盘事件
+  </script>
+</body>
+</html>

@@ -86,7 +86,7 @@
         color:0xff0000 //线条颜色
     });//材质对象
     var line=new THREE.Line(geometry,material);//线条模型对象
-    // scene.add(line);//线条对象添加到场景中
+    scene.add(line);//线条对象添加到场景中
 
     // var geometry = new THREE.BoxGeometry(100, 100, 100); //创建一个立方体几何对象Geometry
     // var material = new THREE.PointsMaterial({
@@ -98,11 +98,15 @@
     // var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
     // scene.add(mesh)
  
-
+    var material = new THREE.MeshLambertMaterial({
+      // color: 0xffff00,
+      vertexColors:  THREE.VertexColors, //以顶点颜色为准
+      side:  THREE.DoubleSide, //两面可见
+    });
 var geometry = new THREE.Geometry(); //声明一个几何体对象Geometry
 var p1 = new THREE.Vector3(50, 0, 0); //顶点1坐标
 var p2 = new THREE.Vector3(0, 70, 0); //顶点2坐标
-var p3 = new THREE.Vector3(80, 70, 0); //顶点3坐标
+var p3 = new THREE.Vector3(0, 0, 90); //顶点3坐标
 //顶点坐标添加到geometry对象
 geometry.vertices.push(p1, p2, p3);
 
@@ -116,8 +120,8 @@ var mesh = new THREE.Mesh(geometry, material); //网格模型对象Mesh
 scene.add(mesh)
 
     // 辅助坐标系  参数250表示坐标系大小，可以根据场景大小去设置
-    // var axisHelper = new THREE.AxisHelper(250);
-    // scene.add(axisHelper);
+    var axisHelper = new THREE.AxisHelper(250);
+    scene.add(axisHelper);
 
     /**
      * 光源设置

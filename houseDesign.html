@@ -16,12 +16,85 @@
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script> 
   <script src="http://www.yanhuangxueyuan.com/js/vue@2.5.16.min.js"></script> 
   <script src="http://www.yanhuangxueyuan.com/js/element-ui/index.js"></script> 
-  <link rel="stylesheet" href="css/index.css">
+  <script src="./js/path.js"></script>
+  <!-- <link rel="stylesheet" href="css/index.css"> -->
   <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden; 
+    } 
+    #menu {
+      position: absolute;
+      bottom: 0px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      z-index: 102;
+      width: 500px;
+      height: 80px
+    }
+
+    #menu>div {
+      padding: 5px;
+    }
+
+    #menu span {
+      display: inline-block;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    #menu .active {
+      background: rgb(64, 158, 255);
+    }
+
+    .el-button--danger {
+      font-size: 25px !important;
+      background: rgba(0, 0, 0, 0.5) !important;
+      border-width: 0px !important;
+      width: 50px !important;
+      height: 50px !important;
+    }   [v-cloak] {
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
- <div id="app"></div>    
+ <div id="app">
+  <div style="position: absolute; right: 20px; top: 20px;">
+    <el-button class="el-button--danger" circle @click="audioClick">
+        <span><i><img :src="'./img/UI/' + (audioBoool ? 'voice' : 'close_voice') + '.png'" alt="" height="20" width="20" /></i></span>
+    </el-button> 
+
+    <el-button class="el-button--danger" circle @click="screenClick">
+        <span><i><img :src="'./img/UI/' + (screenBoool ? 'full_screen' : 'end_screen') + '.png'" alt="" height="20" width="20" /></i></span>
+    </el-button> 
+
+    <el-button class="el-button--danger" circle @click="rotateClick">
+        <span><i><img :src="'./img/UI/' + (rotateBoool ? 'rotate' : 'stop_rotate') + '.png'" alt="" height="20" width="20" /></i></span>
+    </el-button> 
+
+    <el-tooltip class="item" effect="dark" content="按住左键不放上下左右拖动，可以旋转整个场景" placement="top-start">
+        <el-button class="el-button--danger" circle >
+            <span><i><img src="./img/UI/help.png" alt="" height="20" width="20" /></i></span>
+        </el-button> 
+    </el-tooltip> 
+   </div>
+
+   <div id="menu" style="left: 325px;"> 
+      <div >
+       <span style="font-weight: bold; cursor: default;"> 风格:</span> 
+      
+       <span  v-for="(item, i) in styleArr" :key="i" :style="{background: item.styleObj.background}" @click="styleClick(item)"> {{item.name}}</span> 
+      </div>
+      <div>
+       <span style="font-weight: bold; cursor: default;"> 位置:</span> 
+       <span v-for="(item, i) in posArr" :key="i"  :style="{background: item.styleObj.background}" @click="posClick(item)" v-if="item.jpgNameArr.length"> {{item.name}}</span>
+       
+      </div>
+     </div>
+ </div>    
 
 <script>
   var scene = new THREE.Scene();
@@ -37,7 +110,16 @@ scene.add(mesh);
 var textureLoader = new THREE.TextureLoader();
 var listener = new THREE.AudioListener();
 var audio = new THREE.Audio(listener);
-var texture = textureLoader.load('./img/00125.jpg', function(obj) { 
+var texture = textureLoader.load('./img/indoor/中式/客餐厅/00125.jpg', function(obj) { 
+  vm.loading.close();
+  var audioLoader = new THREE.AudioLoader();
+  audioLoader.load('./img/music.mp3',
+  function(AudioBuffer) {
+      audio.setBuffer(AudioBuffer);
+      audio.setLoop(true);
+      audio.setVolume(0.3);
+      // audio.play()
+  });
   render()
 });
 mesh.material.map = texture;
@@ -69,7 +151,9 @@ function render() {
   timeS = timeS + renderInterval;
   if (timeS > refreshTime) {
     renderer.render(scene, camera); 
-     mesh.rotateY(0.002)
+    if (vm.rotateBoool) {
+        mesh.rotateY(0.002)
+    }
     timeS = 0
   }
 }
@@ -77,176 +161,170 @@ render();
 var controls = new THREE.OrbitControls(camera);
 controls.enablePan = false; //  相机平移，默认true
 
-// var styleObjArr = path();
-// var vm = new Vue({
-//   el: "#app",
-//   data: {
-//     loading: null,
-//     styleArr: styleObjArr,
-//     styleChoose: null,
-//     posArr: null,
-//     posChoose: null,
-//     width: window.innerWidth,
-//     height: window.innerHeight,
-//     classPath: '中式/客餐厅',
-//     path: '',
-//     audioBoool: true,
-//     ScreenBoool: true,
-//     rotateBoool: true,
-//     N: styleObjArr[0].children[0].jpgNameArr.length,
-//     num: 1,
-//   },
-//   methods: {
-//     audioClick: function() {
-//       if (this.audioBoool) {
-//         this.audioBoool = false;
-//         audio.pause()
-//       } else {
-//         this.audioBoool = true;
-//         audio.play()
-//       }
-//     },
-//     ScreenClick: function() {
-//       if (this.ScreenBoool) {
-//         this.ScreenBoool = false;
-//         requestFullScreen()
-//       } else {
-//         this.ScreenBoool = true;
-//         exitFullscreen()
-//       }
-//     },
-//     questionClick: function() {
-//       this.$alert('按住左键不放上下左右拖动，可以旋转整个场景', '旋转操作', {})
-//     },
-//     rotateClick: function() {
-//       if (this.rotateBoool) {
-//         this.rotateBoool = false
-//       } else {
-//         this.rotateBoool = true
-//       }
-//     },
-//     nextClick: function() {
-//       if (this.num < this.N) {
-//         this.num += 1
-//       } else {
-//         this.num = 1
-//       }
-//     },
-//     upClick: function() {
-//       if (this.num > 1) {
-//         this.num -= 1
-//       } else {
-//         this.num = this.N
-//       }
-//     },
-//     styleClick: function(styleObj) {
-//       this.loading = this.$loading({
-//         lock: true,
-//         text: 'Loading',
-//         spinner: 'el-icon-loading',
-//         background: 'rgba(0, 0, 0, 0.7)'
-//       });
-//       this.num = 1;
-//       this.styleChoose.styleObj.background = null;
-//       this.posChoose.styleObj.background = null;
-//       this.styleChoose = styleObj;
-//       this.styleChoose.styleObj.background = '#409EFF';
-//       this.posArr = this.styleChoose.children;
-//       this.posChoose = this.posArr[0];
-//       this.posArr[0].styleObj.background = '#409EFF';
-//       this.N = this.posChoose.jpgNameArr.length;
-//       this.classPath = this.styleChoose.name + '/' + this.posChoose.name;
-//       this.path = this.classPath + '/' + this.posChoose.jpgNameArr[this.num - 1];
-//       var texture = textureLoader.load('./风格/' + this.path,
-//       function(obj) {
-//         vm.loading.close();
-//         render()
-//       });
-//       mesh.material.map = texture
-//     },
-//     posClick: function(posObj) {
-//       this.loading = this.$loading({
-//         lock: true,
-//         text: 'Loading',
-//         spinner: 'el-icon-loading',
-//         background: 'rgba(0, 0, 0, 0.7)'
-//       });
-//       this.num = 1;
-//       this.posChoose.styleObj.background = null;
-//       this.posChoose = posObj;
-//       this.N = this.posChoose.jpgNameArr.length;
-//       this.posChoose.styleObj.background = '#409EFF';
-//       this.classPath = this.styleChoose.name + '/' + this.posChoose.name;
-//       this.path = this.classPath + '/' + this.posChoose.jpgNameArr[this.num - 1];
-//       var texture = textureLoader.load('./风格/' + this.path,
-//       function(obj) {
-//         vm.loading.close();
-//         render()
-//       });
-//       mesh.material.map = texture
-//     },
-//     update: function() {},
-//   },
-//   watch: {
-//     num: function(value) {
-//       this.loading = this.$loading({
-//         lock: true,
-//         text: 'Loading',
-//         spinner: 'el-icon-loading',
-//         background: 'rgba(0, 0, 0, 0.7)'
-//       });
-//       this.path = this.classPath + '/' + this.posChoose.jpgNameArr[this.num - 1];
-//       console.log(this.path);
-//       var texture = textureLoader.load('./风格/' + this.path,
-//       function(obj) {
-//         vm.loading.close();
-//         render()
-//       });
-//       mesh.material.map = texture;
-//       render()
-//     }
-//   },
-//   created() {
-//     this.posArr = styleObjArr[0].children;
-//     this.styleChoose = this.styleArr[0];
-//     this.posChoose = styleObjArr[0].children[0];
-//     this.loading = this.$loading({
-//       lock: true,
-//       text: 'Loading',
-//       spinner: 'el-icon-loading',
-//       background: 'rgba(0, 0, 0, 0.7)'
-//     })
-//   }
-// });
-// window.onresize = onresizeFun;
-// function onresizeFun() {
-//   renderer.setSize(window.innerWidth, window.innerHeight);
-//   camera.aspect = window.innerWidth / window.innerHeight;
-//   camera.updateProjectionMatrix();
-//   vm.width = window.innerWidth;
-//   vm.height = window.innerHeight;
-// };
-// function requestFullScreen() {
-//   console.log('fdsfdf');
-//   var de = document.documentElement;
-//   if (de.requestFullscreen) {
-//     de.requestFullscreen()
-//   } else if (de.mozRequestFullScreen) {
-//     de.mozRequestFullScreen()
-//   } else if (de.webkitRequestFullScreen) {
-//     de.webkitRequestFullScreen()
-//   }
-// }
-// function exitFullscreen() {
-//   var de = document;
-//   if (de.exitFullscreen) {
-//     de.exitFullscreen()
-//   } else if (de.mozCancelFullScreen) {
-//     de.mozCancelFullScreen()
-//   } else if (de.webkitCancelFullScreen) {
-//     de.webkitCancelFullScreen()
-//   }
-// }
+var styleObjArr = path();
+
+var vm = new Vue({
+  el: "#app",
+  data: {
+    loading: null,
+    styleArr: styleObjArr,
+    styleChoose: null,
+    posArr: null,
+    posChoose: null,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    classPath: '中式/客餐厅',
+    path: '',
+    audioBoool: false,
+    screenBoool: true,
+    rotateBoool: true,
+    N: styleObjArr[0].children[0].jpgNameArr.length,
+    num: 1,
+  },
+  methods: {
+    audioClick: function() {
+      this.audioBoool = !this.audioBoool
+      if (this.audioBoool) { 
+        audio.play()
+      } else { 
+        audio.pause()
+      }
+    },
+    screenClick: function() {
+      if (this.screenBoool) {
+        this.screenBoool = false;
+        requestFullScreen()
+      } else {
+        this.screenBoool = true;
+        exitFullscreen()
+      }
+    },
+     
+    // 点击旋转
+    rotateClick: function() {
+      if (this.rotateBoool) {
+        this.rotateBoool = false
+      } else {
+        this.rotateBoool = true
+      }
+    },
+    nextClick: function() {
+      if (this.num < this.N) {
+        this.num += 1
+      } else {
+        this.num = 1
+      }
+    },
+    upClick: function() {
+      if (this.num > 1) {
+        this.num -= 1
+      } else {
+        this.num = this.N
+      }
+    },
+    styleClick: function(styleObj) {
+      this.loading = this.$loading({
+        lock: true,
+        text: 'Loading',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+      this.num = 1;
+      this.styleChoose.styleObj.background = null;
+      this.posChoose.styleObj.background = null;
+      this.styleChoose = styleObj;
+      this.styleChoose.styleObj.background = '#409EFF';
+      this.posArr = this.styleChoose.children; 
+      this.posChoose = this.posArr[0];
+      this.posArr[0].styleObj.background = '#409EFF';
+      this.N = this.posChoose.jpgNameArr.length;
+      this.classPath = this.styleChoose.name + '/' + this.posChoose.name;
+      this.path = this.classPath + '/' + this.posChoose.jpgNameArr[this.num - 1];
+      var texture = textureLoader.load('./img/indoor/' + this.path, function(obj) {
+        vm.loading.close();
+        render()
+      });
+      mesh.material.map = texture
+    },
+    posClick: function(posObj) {
+      this.loading = this.$loading({
+        lock: true,
+        text: 'Loading',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+      this.num = 1;
+      this.posChoose.styleObj.background = null;
+      this.posChoose = posObj;
+      this.N = this.posChoose.jpgNameArr.length;
+      this.posChoose.styleObj.background = '#409EFF';
+      this.classPath = this.styleChoose.name + '/' + this.posChoose.name;
+      this.path = this.classPath + '/' + this.posChoose.jpgNameArr[this.num - 1];
+      var texture = textureLoader.load('./img/indoor/' + this.path,  function(obj) {
+        vm.loading.close();
+        render()
+      });
+      mesh.material.map = texture
+    },
+    update: function() {},
+  },
+  watch: {
+    num: function(value) {
+      this.loading = this.$loading({
+        lock: true,
+        text: 'Loading',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+      this.path = this.classPath + '/' + this.posChoose.jpgNameArr[this.num - 1]; 
+      var texture = textureLoader.load('./img/indoor/' + this.path,  function(obj) {
+        vm.loading.close();
+        render()
+      });
+      mesh.material.map = texture;
+      render()
+    }
+  },
+  created() {
+    this.posArr = styleObjArr[0].children;
+    this.styleChoose = this.styleArr[0];
+    this.posChoose = styleObjArr[0].children[0];
+    this.loading = this.$loading({
+      lock: true,
+      text: 'Loading',
+      spinner: 'el-icon-loading',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+  }
+});
+window.onresize = onresizeFun;
+function onresizeFun() {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  vm.width = window.innerWidth;
+  vm.height = window.innerHeight;
+};
+function requestFullScreen() { 
+  var de = document.documentElement;
+  if (de.requestFullscreen) {
+    de.requestFullscreen()
+  } else if (de.mozRequestFullScreen) {
+    de.mozRequestFullScreen()
+  } else if (de.webkitRequestFullScreen) {
+    de.webkitRequestFullScreen()
+  }
+}
+function exitFullscreen() {
+  var de = document;
+  if (de.exitFullscreen) {
+    de.exitFullscreen()
+  } else if (de.mozCancelFullScreen) {
+    de.mozCancelFullScreen()
+  } else if (de.webkitCancelFullScreen) {
+    de.webkitCancelFullScreen()
+  }
+}
 </script>
 </body>
 </html>

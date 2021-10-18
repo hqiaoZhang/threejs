@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>基础灯光</title>
+    <!-- <link rel="stylesheet" href="../public/plugins/ys/ys.min.css"> -->
+    <link rel="stylesheet" href="https://www.wellyyss.cn/public/css/ysThree/pageStyle.css">
+    <style>
+    html,body, 
+    .ys-absolute-container {
+      width: 100%;
+      height: 100%
+    }
+    </style>
+</head>
+<body>
+<div class="ys-absolute-container" id="box" style="overflow: hidden"></div> 
+</body>
+<script src="https://www.wellyyss.cn/public/plugins/others/jquery-1.10.2.min.js"></script>
+<script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.js"></script> 
+<script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/libs/stats.min.js"></script>
+<script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/libs/dat.gui.min.js"></script>
+<script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script>
+<script>
+    function init(callback) {
+        const container = $("#box"),
+            width = container.width(),
+            height = container.height()
+        //场景
+        const scene = new THREE.Scene();  // 场景
+
+        // 透视相机
+        const camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000);
+        camera.position.set(0,60,60)
+        camera.lookAt(scene.position);
+
+        //渲染器
+        const renderer = new THREE.WebGLRenderer({
+            antialias : true
+        });
+        renderer.setSize(width, height);
+        container.append(renderer.domElement);
+        renderer.setClearColor('#000');
+
+        //坐标轴辅助
+        const axes = new THREE.AxesHelper(10); //红x 绿y 蓝z
+        scene.add(axes);
+
+        callback(scene,camera,renderer)
+
+    }
+    init((scene,camera,renderer)=> {
+        //平面
+        const planeGeometry = new THREE.PlaneGeometry(100, 100);
+        const planeMaterial = new THREE.MeshLambertMaterial({color: 0xffffff});
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        //水平面旋转并且设置位置
+        plane.rotation.x = -0.5 * Math.PI;
+        plane.position.set(0,-1,0)
+        scene.add(plane);
+        
+        //方块
+        const cubeGeometry = new THREE.BoxGeometry(4, 4, 4);
+        const cubeMaterial = new THREE.MeshLambertMaterial({color: 'yellow'});
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        //设置方块位置
+        cube.position.set(-4,2,0)
+        scene.add(cube);
+
+        //球体
+        const sphereGeometry = new THREE.SphereGeometry(4, 20, 20)
+        const sphereMaterial = new THREE.MeshLambertMaterial({color: 'yellow'})
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial)
+        //设置球体位置
+        sphere.position.set( 20,2,2)
+        scene.add(sphere)
+
+        renderer.shadowMap.enabled = true;
+        plane.receiveShadow = true;//接受
+        cube.castShadow = true;
+        sphere.castShadow = true;
+
+
+        /**
+          AmbientLight光源影响整个场景，它的光线没有特定来源但是又无处不在，它不能影响阴影生成，并且不能作为唯一光源。
+          使用其他光源的同事使用AmbientLight，目的是弱化阴影和添加一些颜色
+         */
+         function addAmbientLight(){
+             const ambientLight = new THREE.AmbientLight('rgba(255,0,0)',0.3) // obj 唯一 id
+             scene.add(ambientLight)
+             ambientLight.name = "0"
+         }
+        addAmbientLight()
+
+        /**
+           PointLight( color, intensity, distance, decay )
+           color — 颜色的RBG数值。
+           intensity — 光强的数值。
+           distance -- 光强为0处到光源的距离，0表示无穷大。
+           decay -- 沿着光照距离的衰退量
+         */
+        function addPointLight(){
+            const pointLight = new THREE.PointLight("#fff",2,1000);
+            //pointLight.distance = 1000;
+            // pointLight.intensity = 2;
+            pointLight.position.set(0,20,-10)
+            scene.add(pointLight)
+            //灯光辅助
+            const sphereSize = 2
+            const pointLightHelper = new THREE.PointLightHelper( pointLight, sphereSize )
+            scene.add( pointLightHelper )
+
+            //需要给光源同样设置投射阴影
+            pointLight.castShadow = true;
+            pointLight.name = "1"
+            pointLightHelper.name= '1_helper'
+        }
+       addPointLight()
+
+        /**
+         * SpotLight具有锥形效果的光源，可以产生阴影，类似我们日常生活中的手电筒
+         * SpotLight( color, intensity, distance, angle, penumbra, decay )
+         */
+
+        function addSpotLight(){
+            const spotLight = new THREE.SpotLight('#fff')
+            spotLight.position.set(30,25,-10)
+            spotLight.castShadow = true
+            scene.add(spotLight)
+            const  spotLightHelper = new THREE.SpotLightHelper( spotLight )
+            scene.add( spotLightHelper )
+
+            spotLight.name = "2"
+            spotLightHelper.name= '2_helper'
+        }
+        // addSpotLight()
+
+        /**
+         * DirectionalLight( hex, intensity ) hex -- 光源颜色的RGB数值。intensity -- 光源强度的数值。
+         * 创建一个光照，从一个特定的方向，而不是从一个特定的位置。这个光看起来就像光源位于无限远处，因此它产生的光线都是平行的。
+         * 最好的类比是一个像太阳一样的光源：太阳是如此遥远，所有的阳光照射到物体上都几乎来自同一个角度。
+         */
+
+        function addDirectionalLight(){
+            const directionalLight = new THREE.DirectionalLight( 0xffffff, 2 )
+            directionalLight.position.set(50,25,10)
+            directionalLight.castShadow = true
+            scene.add( directionalLight )
+
+            const  directionalLightHelper = new THREE.DirectionalLightHelper( directionalLight )
+
+            //directionalLight.target = plane
+            directionalLight.shadow.camera.near = 2;
+            directionalLight.shadow.camera.far = 200;
+            directionalLight.shadow.camera.left = -50;
+            directionalLight.shadow.camera.right = 50;
+            directionalLight.shadow.camera.top = 50;
+            directionalLight.shadow.camera.bottom = -50;
+
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.mapSize.width = 1024
+
+            scene.add( directionalLightHelper )
+
+            directionalLight.name = "3"
+            directionalLightHelper.name= '3_helper'
+        }
+        //addDirectionalLight()
+        
+        function render() {
+          renderer.render(scene,camera)
+        }
+        renderer.render(scene,camera)
+        var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+        controls.addEventListener('change', render);//监听鼠标、键盘事件
+    })
+
+</script> 
+</html>

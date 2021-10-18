@@ -20,8 +20,9 @@
     <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.js"></script> 
 <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/OBJLoader.js"></script>
 <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/MTLLoader.js"></script>
-<script src="http://www.wjceo.com/lib/libs/chroma.js"></script> <!--处理颜色的库-->
+<script src="http://www.wjceo.com/lib/libs/chroma.js"></script> <!--处理颜色的库(可实现各种颜色的转换和颜色处理。)-->
 <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/FirstPersonControls.js"></script>
+<!-- 主要用于检测动画运行时的帧数  -->
 <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/libs/stats.min.js"></script>
 <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/libs/dat.gui.min.js"></script>
 <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/Detector.js"></script>
@@ -31,8 +32,8 @@
     function initRender() {
         renderer = new THREE.WebGLRenderer({antialias:true});
         renderer.setSize(window.innerWidth, window.innerHeight);
+         //告诉渲染器需要阴影效果
         renderer.sortObjects = false;
-        //告诉渲染器需要阴影效果
         document.body.appendChild(renderer.domElement);
     }
 
@@ -52,8 +53,7 @@
     var gui;
     function initGui() {
         //声明一个保存需求修改的相关数据的对象
-        gui = {
-        };
+        gui = { };
         var datGui = new dat.GUI();
         //将设置属性添加到gui当中，gui.add(对象，属性，最小值，最大值）
     }
@@ -77,6 +77,7 @@
         var helper = new THREE.AxesHelper(50);
         scene.add(helper);
 
+        // 创建林模型加载
         var mtlLoader = new THREE.MTLLoader();
         mtlLoader.setPath('model/');
         //加载mtl文件
@@ -86,9 +87,8 @@
             // objLoader.setMaterials(material);
             objLoader.setPath('model/');
             objLoader.load('city.obj', function (object) {
-                //设置颜色的取值范围
-                var scale = chroma.scale(['yellow', '008ae5']);
-
+                //设置颜色的取值范围(白色，蓝色)
+                var scale = chroma.scale(['#ffffff', '008ae5']); 
                 console.log(object);
 
                 //重新设置纹理颜色

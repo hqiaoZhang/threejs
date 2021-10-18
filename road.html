@@ -14,85 +14,201 @@
   <!--引入three.js三维引擎-->
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.js"></script> 
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script>
-  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/MTLLoader.js"></script>
-  
-  <!-- <script src="./three.js"></script> -->
-  <!-- <script src="http://www.yanhuangxueyuan.com/threejs/build/three.js"></script> -->
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/GLTFLoader.js"></script> 
+  <script src="http://www.yanhuangxueyuan.com/js/vue@2.5.16.min.js"></script> 
+  <script src="http://www.wjceo.com/lib/libs/chroma.js"></script> <!--处理颜色的库(可实现各种颜色的转换和颜色处理。)-->
+  <script src="./js/TweenMax.min.js"></script> 
 </head>
 
 <body>
+  <div id="app">
+      <div id="threeDom"> </div>
+  </div>
   <script>
-   var width = window.innerWidth; //窗口宽度
-   var height = window.innerHeight; //窗口高度  
-    /**
-     * 创建场景对象Scene
-     */
-     var scene = new THREE.Scene();
-    // 辅助坐标系  参数500表示坐标系大小，可以根据场景大小去设置
-    var axesHelper = new THREE.AxesHelper(500);
-    scene.add(axesHelper)
-      /**
-     * 光源设置
-     */
-      // 平行光(太阳光)
-  var dirLight = new THREE.DirectionalLight(0xffffff);
-  dirLight.castShadow = true;
-  dirLight.position.set(500, 500, 0);
-  scene.add(dirLight);
-    //环境光
-    var ambient = new THREE.AmbientLight(0xffffff);
-    scene.add(ambient);
+   const Scene = new THREE.Scene();
+      // 透视相机
+      const Camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        5000
+      );
+      // Camera.position.set(-180, 430, 333)
+      
+      // 创建渲染器
+      const Renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true, //开启alpha
+      });
+      // 控制器
+      const Controls = new  THREE.OrbitControls(Camera, Renderer.domElement);
+      //gltfLoader
+      const Gltfloader = new THREE.GLTFLoader();
+      // 注意:此处为threejs的DOM,需要将threejs的场景渲染进去
+      // const threeDom = ref(null);
+      // 首页进入相机的视角,这个视角可以在三维模型中建立一个摄像机获取摄像机的坐标,如C4D,非常准确.
+      const cameraPosition = {
+        x: -30,
+        y: 71.6,
+        z: 55.5,
+      };
+      const cameraLookat = {
+        x: 10,
+        y: 0,
+        z: 10,
+      };
+      // Camera.lookAt(cameraLookat); //设置相机方向(指向的场景对象)
+    // 声明一个方法传入参数可以在不同的地方调用相机
+       function cameraReset(cameraposition, lookAt)  { 
+         
+        TweenMax.to(Camera.position, 3, {
+          x: cameraposition.x,
+          y: cameraposition.y,
+          z: cameraposition.z,
+          ease: Expo.easeInOut, // 相机的运动动画,缓入缓出等
+          onComplete: function () {
+            console.log('111111111111111')
+          // 这是相机运动完成的回调,可以执行其他的方法.
+          }
+        }); 
+        TweenMax.to(Camera.lookAt, 3, {  // 相机的朝向
+          x: lookAt.x,
+          y: lookAt.y,
+          z: lookAt.z,
+          ease: Expo.easeInOut,
+        });
+        TweenMax.to(Controls.target, 3, { // 轨道控制器的朝向
+          x: lookAt.x,
+          y: lookAt.y,
+          z: lookAt.z,
+          // eslint-disable-next-line no-undef
+          ease: Expo.easeInOut,
+        });
+      };
+      
+      function initThreeScene() {
+        // 点光源
+        const pointLight = new THREE.PointLight(0xffffff);
+        pointLight.position.set(10, 600, -40); // 点光源位置
+        // Scene.position.set(0, 0, 0); // 场景位置
+        // Scene.add(pointLight); // 点光源添加到场景中
 
-    /**
- * OBJ和材质文件mtl加载
- */
-var GLTFLoader = new THREE.GLTFLoader();//obj加载器 
-GLTFLoader.load('./model/road.glb', function(gltf) {
-  // 返回一个包含材质的对象MaterialCreator
-  let model = gltf.scene
-  model.scale.set(10, 10, 10); //放大model组对象
-    model.position.set(0, 0, 0)
-  scene.add( model);
-  render()
-})
+         const sphereSize = 1
+    const pointLightHelper = new THREE.PointLightHelper( pointLight, sphereSize )
+    Scene.add( pointLightHelper )
 
+        // 环境光
+        const ambient = new THREE.AmbientLight(0xffffff, 1);
+        Scene.add(ambient); 
 
-var k = width / height; //窗口宽高比
-var s = 200; //三维场景显示范围控制系数，系数越大，显示的范围越大
-var camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
-camera.position.set(-100, 0, 0); //设置相机位置
-camera.lookAt(scene.position); //设置相机方向(指向的场景对象)
+        // 辅助坐标系
+        const axesHelper = new THREE.AxesHelper(500);
+        Scene.add(axesHelper);
+        // 修改相机,场景的参数
+        Camera.position.set(-180, 430, 333);
+        Camera.lookAt(0, 0, 0);
+        Controls.target = new THREE.Vector3(0, 0, 0);
+        // 使动画循环使用时阻尼或自转 意思是否有惯性
+        Controls.enableDamping = true;
+        // 动态阻尼系数 就是鼠标拖拽旋转灵敏度
+        // Controls.dampingFactor = 0.04;
+        // 是否可以旋转
+        // Controls.enableRotate = false;
+        // 是否可以缩放与速度
+        // Controls.enableZoom = false;
+        // 是否自动旋转
+        // 设置相机距离原点的最远距离
+        // Controls.minDistance = 1;
+        // 设置相机距离原点的最远距离
+        // Controls.maxDistance = 2000;
+        // 是否开启右键拖拽
+        Controls.enablePan = false;
+        //render的相关设置
+        Renderer.setPixelRatio(window.devicePixelRatio);
+        Renderer.setSize(window.innerWidth, window.innerHeight);
+        Renderer.inputEncoding = true;
+        Renderer.outputEncoding = THREE.sRGBEncoding;
+        Renderer.setClearColor(0xd0d0d0, 1);
+        // document.body.appendChild(Renderer.domElement); //body元素中插入canvas对象
+        // 将renderer渲染进DOM里面
+        let threeDom = document.getElementById('threeDom')
+        threeDom.appendChild(Renderer.domElement);
+        // 控制器的设置
+        // Controls.enableDamping = true;
+        // Controls.dampingFactor = 0.1;
+        // addModel();
+      }; 
+      // 设置页面自适应
+      const onWindowResize = () => {
+        Camera.aspect = window.innerWidth / window.innerHeight;
+        Camera.updateProjectionMatrix();
+        Renderer.setSize(window.innerWidth, window.innerHeight);
+      };
+      window.addEventListener("resize", onWindowResize, false);
+      //  完成以上步骤基本的场景已经配置完成
 
-    /**
- * 创建渲染器对象
- */
-var renderer = new THREE.WebGLRenderer({
-  antialias: true,
-});
-renderer.setSize(width, height);//设置渲染区域尺寸
-renderer.setClearColor(0xb9d3ff, 1); //设置背景颜色
-renderer.sortObjects = true;
-document.body.appendChild(renderer.domElement); //body元素中插入canvas对象
-//执行渲染操作   指定场景、相机作为参数
-// renderer.render(scene, camera);
-function render() {
-  renderer.render(scene,camera);//执行渲染操作
-}
-render()
-var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
-controls.addEventListener('change', render);//监听鼠标、键盘事件
+        Gltfloader.load("model/road.glb", (gltf) => { 
+          gltf.scene.traverse( function ( child ) { 
+            if ( child.isMesh ) {
+                child.frustumCulled = true;
+                //模型阴影
+                child.castShadow = true;
+                //模型自发光
+                child.material.opacity = 0.7;
+                child.material.emissive =  child.material.color;
+                child.material.emissiveMap = child.material.map ;
+            }}) 
 
-  window.onresize = function() {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    k = window.innerWidth / window.innerHeight;
-    camera.left = -s * k;
-    camera.right = s * k;
-    camera.top = s;
-    camera.bottom = -s;
-    camera.updateProjectionMatrix();
-    location.reload()
-};
+          Scene.add(gltf.scene);
+          // setRandomColors( gltf.scene, scale);
+          // 模型加载完,进行相机的初始化,传入设置的参数,模型加载为异步
+          cameraReset(cameraPosition, cameraLookat);
+          }, function (xhr) {
+            // 控制台查看加载进度xhr
+            console.log(Math.floor(xhr.loaded / xhr.total * 100)) 
+            
+        });
+          
+         function Render() {
+          requestAnimationFrame(Render);
+          Controls.update();
+          Renderer.clear();
+          Renderer.render(Scene, Camera);
+        };  
+
+    
+    var vm = new Vue({
+      el: "#app",
+      mounted() {
+        initThreeScene();
+        Render();
+      },
+      unmounted() {
+        Scene.traverse((e) => {
+        if (e.BufferGeometry) e.BufferGeometry.dispose()
+        if (e.material) {
+          if (Array.isArray(e.material)) {
+            e.material.forEach((m) => {
+              m.dispose()
+            })
+          } else {
+            e.material.dispose()
+          }
+        }
+        if (e.isMesh) {
+          e.remove();
+        }
+      })
+
+      Scene.remove();
+      // Scene.dispose();// 打开会报错,暂时还未解决如果你有好的方法欢迎留言
+      Renderer.dispose();
+      Renderer.content = null;
+      // Renderer.domElement = null // 打开会报错,暂时还未解决如果你有好的方法欢迎留言
+      window.removeEventListener("resize", onWindowResize, false); 
+      },
+    })
+
 
   </script>
 </body>

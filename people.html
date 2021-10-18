@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>gltf</title>
+    <!-- <link rel="stylesheet" href="../public/plugins/ys/ys.min.css"> -->
+    <link rel="stylesheet" href="https://www.wellyyss.cn/public/css/ysThree/pageStyle.css">
+    <style>
+        html,body,
+    .ys-absolute-container {
+        width: 100%;
+        height: 100%;
+    }
+    </style>
+</head>
+<body>
+<div class="ys-absolute-container" id="box" style="overflow: hidden"></div>
+<div class="fix-btns">
+    <span class="ys-btn ys-btn-warm ys-btn-sm  tips-btn">小记</span>
+   
+</div>
+<div class="tips-container ys-absolute-container">
+    <div class="ys-tit">gltf</div>
+    <div class="ys-block"></div>
+</div>
+</body>
+<script src="https://www.wellyyss.cn/public/plugins/others/jquery-1.10.2.min.js"></script>
+<script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.js"></script> 
+<script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script>
+<script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/GLTFLoader.js"></script>   
+<script src="https://www.wellyyss.cn/public/plugins/ysThree/ysThree_1.0.0.js"></script>
+<script>
+    const el = document.getElementById('box')
+    ysThree.init({
+        el:el,
+        cameraType:1,
+        gridHelper:true,//网格参考线
+        axes:true,//坐标辅助
+        clearColor:'#000'//画布颜色
+    },(scene,camera,renderer)=>{
+
+        renderer.setPixelRatio( window.devicePixelRatio )
+
+        //add light
+        const directionalLight = new THREE.DirectionalLight( 0xffeedd );
+        directionalLight.position.set( 0, 0, 1 ).normalize();
+        scene.add( directionalLight )
+
+        /*  ***********/
+        const loadingDom =  ysThree.loading("object文件")
+        const	loader = new THREE.GLTFLoader()
+        let object
+        let animations
+        let mixer
+        let currentAction
+        let currenActionIndex = 0
+        loader.load( "model/CesiumMan.gltf", function ( gltf ) {
+            //
+            object = gltf.scene
+
+            //
+            object.traverse( function ( node ) {
+                // if ( node.isMesh || node.isLight ) node.castShadow = true
+            })
+
+            //get the animation
+            animations = gltf.animations
+            
+            object.scale.set(4,4,4)
+
+            scene.add(object)
+
+            document.body.removeChild(loadingDom)
+        })
+
+
+        /*  ***********/
+        function initControls() {
+            const  controls = new THREE.OrbitControls(camera, renderer.domElement);
+            // 如果使用animate方法时，将此函数删除
+            //controls.addEventListener( 'change', render );
+            // 使动画循环使用时阻尼或自转 意思是否有惯性
+            controls.enableDamping = true;
+            //动态阻尼系数 就是鼠标拖拽旋转灵敏度
+            //controls.dampingFactor = 0.25;
+            //是否可以缩放
+            controls.enableZoom = true;
+            //是否自动旋转
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.3;
+            //设置相机距离原点的最远距离
+            controls.minDistance = 1;
+            //设置相机距离原点的最远距离
+            controls.maxDistance = 200;
+            //是否开启右键拖拽
+            controls.enablePan = true
+            return controls
+        }
+        const  controls = initControls()
+
+        //
+        let clock = new THREE.Clock()
+        function animate() {
+            controls.update()
+            renderer.render(scene,camera)
+            requestAnimationFrame(animate)
+
+            /** 动画 */
+            const delta = clock.getDelta()
+            if ( mixer) {
+                mixer.update( delta )
+            }
+        }
+        animate()
+ 
+    })
+</script> 
+</html>

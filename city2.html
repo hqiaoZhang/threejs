@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>标题</title>
+    <link rel="stylesheet" href="../public/plugins/ys/ys.min.css">
+    <link rel="stylesheet" href="../public/css/ysThree/pageStyle.css">
+    <link rel="stylesheet" href="../public/css/ysThree/test1.css">
+</head>
+<body>
+<div class="ys-absolute-container" id="box" style="overflow: hidden;background-color: #000"></div>
+<div class="fix-btns">
+    <span class="ys-btn ys-btn-warm ys-btn-sm  tips-btn">小记</span>
+    <span class="ys-btn ys-btn-warm ys-btn-sm  exit" style="display: none">退出</span>
+</div>
+<div class="tips-container ys-absolute-container">
+    <div class="ys-tit">标题</div>
+    <div class="ys-block">
+
+    </div>
+</div>
+<div class="ys-fix-container" style="bottom: 10px;top:auto">
+    <div class="ys-btn ys-btn-sm btn1">天气</div>
+    <div class="ys-btn ys-btn-sm btn2">show stats</div>
+    <div class="ys-btn ys-btn-sm btn3">fly</div>
+    <div class="ys-btn ys-btn-sm btn4">扫描</div>
+    <div class="ys-btn ys-btn-sm btn5">飞机巡逻</div>
+</div>
+<video id="video" autoplay style="display:none"></video>
+<div style="display: none" class="boxContainer">
+
+</div></body>
+<script src="../public/plugins/ys/ys.min.js"></script>
+<script src="../public/plugins/threeLibrary/three.min.js"></script>
+<script src="../public/plugins/threeLibrary/js/controls/OrbitControls.js"></script>
+<script src="../public/plugins/threeLibrary/js/controls/TransformControls.js"></script>
+<script src="../public/plugins/threeLibrary/js/controls/DragControls.js"></script>
+<script src="../public/plugins/threeLibrary/js/loaders/OBJLoader.js"></script>
+<script src="../public/plugins/threeLibrary/js/loaders/MTLLoader.js"></script>
+<script src="../public/plugins/threeLibrary/js/lines/MeshLine.js"></script>
+<script src="../public/plugins/threeLibrary/js/objects/Reflector.js"></script>
+<script src="../public/plugins/threeLibrary/js/objects/Refractor.js"></script>
+<script src="../public/plugins/threeLibrary/js/objects/Water2.js"></script>
+<script src="../public/plugins/threeLibrary/js/renderers/CSS3DRenderer.js"></script>
+<script src="../public/plugins/threeLibrary/js/libs/stats.min.js"></script>
+<script src="../public/plugins/threeLibrary/js/loaders/ColladaLoader.js"></script>
+<script src="../public/plugins/createJs/tween.min.js"></script>
+<script src="../public/plugins/ysThree/ysThree_1.0.0.js"></script>
+<script>
+    const el = document.getElementById('box')
+    ysThree.init({
+        el:el,
+        cameraType:1,
+        // gridHelper:true,//网格参考线
+        // axes:true,//坐标辅助
+        clearColor:'#000'//画布颜色
+    },(scene,camera,renderer)=>{
+        renderer.setClearAlpha(0.5)
+        renderer.shadowMap.enabled = true
+        renderer.setPixelRatio( window.devicePixelRatio )
+
+        /** add light */
+        const directionalLight = new THREE.DirectionalLight( '#fff',1 )
+        directionalLight.position.set( 0, 100, 0 )
+        directionalLight.castShadow = true
+
+        const pointLight = new THREE.PointLight( 'yellow',2 )
+        pointLight.position.set( 100, 30, 100 )
+        pointLight.castShadow = true
+        scene.add( pointLight )
+
+        const pointLight2 = new THREE.PointLight( 'blue',2 )
+        pointLight2.position.set( -100, 30, -100 )
+        pointLight2.castShadow = true
+        scene.add( pointLight2 )
+
+        const pointLight3 = new THREE.PointLight( '#fff',2 )
+        pointLight3.position.set( 300, 200, -300 )
+        pointLight3.castShadow = true
+        scene.add( pointLight3 )
+        scene.add(new THREE.PointLightHelper(pointLight3,1))
+
+
+        const ambientLight = new THREE.AmbientLight('#fff',1) // obj 唯一 id
+        scene.add(ambientLight)
+
+        /** 音乐 **/
+        const listener = new THREE.AudioListener();
+        // camera.add( listener )
+        const audio = new THREE.Audio(listener);
+        const audioLoader = new THREE.AudioLoader()
+        audioLoader.load('../public/data/ysThree/video/qyc.mp3', function(AudioBuffer) {
+            // 音频缓冲区对象关联到音频对象audio
+            audio.setBuffer(AudioBuffer)
+            audio.setLoop(true); //是否循环
+            audio.setVolume(0.5); //音量
+            // audio.play(); //play播放、stop停止、pause暂停
+        });
+
+        //数据
+        const linePos = [
+            [
+                [-200,5,-100],
+                [100,5,-90],
+                [120,5,200]
+            ],
+            [
+                [200,12,110],
+                [-90,12,90],
+                [-110,12,-180]
+            ]
+        ]
+        let lineList = []
+        let resolution = new THREE.Vector2( el.offsetWidth,  el.offsetHeight )
+        const css3DRenderer = new THREE.CSS3DRenderer()
+        const stander  = new THREE.Group()
+        let plane
+        let uniforms2
+
+        /** add object */
+        const loadingDom =  ys.message({type:'loading',msg:"正在加载数据请稍候..."})
+        const textureLoader =  new THREE.TextureLoader()
+        textureLoader.load("../public/images/ysThree/liti.png",function (groundTexture) {
+            textureLoader.load("../public/images/ysThree/road.png",function (road) {
+                new THREE.MTLLoader()
+                    .setPath( '../public/data/ysThree/models/obj/city/' )
+                    .load( 'city.mtl', function ( materials ) {
+                        new THREE.OBJLoader()
+                            .setPath( '../public/data/ysThree/models/obj/city/' )
+                            .setMaterials( materials )
+                            .load( 'city.obj', function ( object ) {
+                                console.log(object)
+                                object.traverse(child =>{
+                                    // groundTexture.wrapS = THREE.RepeatWrapping;
+                                    // groundTexture.wrapT = THREE.RepeatWrapping;
+                                    // groundTexture.repeat.set(1, 1);
+                                    if(child.name === 'mesh105'){
+                                        child.material = new THREE.MeshStandardMaterial({
+                                            transparent:true,
+                                            opacity:0
+                                        })
+                                        // water
+                                        const  params = {
+                                            color: '#fff',
+                                            scale: 3,
+                                            flowX: 1,
+                                            flowY: 1
+                                        };
+                                        const  waterGeometry = new THREE.PlaneGeometry(600, 600);
+                                        const water = new THREE.Water( waterGeometry, {
+                                            color: params.color,
+                                            scale: params.scale,
+                                            flowDirection: new THREE.Vector2( params.flowX, params.flowY ),
+                                            textureWidth: 1024,
+                                            textureHeight: 1024,
+                                            waterPath:["../public/images/ysThree/water/Water_1_M_Normal.jpg","../public/images/ysThree/water/Water_2_M_Normal.jpg"]
+                                        })
+                                        water.position.set(0,1.5,0)
+                                        water.rotation.x = Math.PI * - 0.5
+                                        scene.add(water)
+                                        //平面
+                                        const planeGeometry = new THREE.PlaneGeometry(600, 600)
+                                        plane = new THREE.Mesh(planeGeometry)
+                                        //水平面旋转并且设置位置
+                                        plane.rotation.x = -0.5 * Math.PI
+                                        plane.material.update = true
+                                        plane.position.set(0,1,0)
+                                        scene.add(plane)
+                                        plane.name="plane"
+                                        plane.material = new THREE.MeshStandardMaterial({
+                                            // color:'#2d68be',
+                                            map:groundTexture,
+                                            transparent:true,
+                                            opacity:0.9
+                                        })
+                                        plane.receiveShadow = true
+                                    }
+                                    else if(["mesh01","mesh02"].indexOf(child.name)!==-1){ //road
+                                        child.material = new THREE.MeshStandardMaterial({map:road,transparent:true,opacity:0.9})
+                                    }
+                                    else if(["mesh04"].indexOf(child.name)!==-1){
+                                        child.material = new THREE.MeshStandardMaterial({color:'#78F8FF',transparent:true,opacity:0.9})
+                                        child.scale.set(2,2,2)
+                                        child.castShadow = true
+                                        child.name = '国创大楼'
+                                    }
+                                    else{
+                                        child.material = new THREE.MeshStandardMaterial({color:'#1759AA',transparent:true,opacity:0.8})
+                                        child.castShadow = true
+                                    }
+                                    child.updateMatrix()
+                                })
+                                scene.add( object )
+
+                                callbackObj()
+                            })
+                    })
+            })
+        })
+
+        /** add road line */
+        function callbackObj() {
+            const getLineGeo = (list) =>{
+                const l = []
+                for(let i =0;i<list.length;i++){
+                    l.push( new THREE.Vector3(list[i][0],list[i][1],list[i][2]));
+                }
+                const cat = new THREE.CatmullRomCurve3(l) //曲线路径
+                const points = cat.getPoints(50) //曲线分五十段，也就是取 101个点
+
+                // const geometry = new THREE.Geometry()//创建一个几何
+                // for(let i =0;i < points.length;i++){
+                //     geometry.vertices.push( new THREE.Vector3(points[i].x,points[i].y,points[i].z))
+                // }
+                return new THREE.Geometry().setFromPoints(points)
+            }
+            textureLoader.load( '../public/images/ysThree/red_line.png', function( texture ) {
+                textureLoader.load( '../public/images/ysThree/green_line.png', function( texture2 ) {
+                    linePos.forEach((e,i) =>{
+                        const  meshLine = new MeshLine()
+                        meshLine.setGeometry(getLineGeo(e))
+                        const line = new THREE.Mesh(meshLine.geometry, new MeshLineMaterial({
+                            color: i % 2 === 0 ?'red':'green',
+                            map: i % 2 === 0 ? texture:texture2,
+                            useMap: true,
+                            lineWidth: 10,
+                            resolution: resolution,
+                            dashArray: 0.8,  // 破折号之间的长度和间距。(0 -无破折号)
+                            dashRatio: 0.3, // 定义可见和不可见之间的比率(0 -更可见，1 -更不可见)。
+                            dashOffset: 0,
+                            transparent: true,
+                            sizeAttenuation: 1, //使线宽不变，不管距离(1个单位是屏幕上的1px)(0 -衰减，1 -不衰减)
+                            side: THREE.DoubleSide,
+                            depthTest: false,
+                            blending: THREE.AdditiveBlending,
+                            near: camera.near,
+                            far: camera.far,
+                        }))
+                        scene.add(line)
+                        line.position.y = 5
+                        lineList.push(line)
+                        //
+                        addFlyLine(texture,texture2)
+                        //
+                        add3DLabels()
+                        //
+                        addStander(texture,texture2)
+                        //
+                        addHomeLabel()
+                        //
+                        loadingDom.remove()
+                    })
+                })
+            })
+        }
+
+        //飞线几何体
+        function getFlyLineGeo(v0, v3,number) {
+            const v1 = {}
+            v1.x = (v0.x + v3.x) / 2
+            v1.y = number||30
+            v1.z = (v0.z + v3.z) / 2
+            // 绘制贝塞尔曲线
+            const curve = new THREE.CubicBezierCurve3(v0, v1, v1, v3);
+            const geometry = new THREE.Geometry()
+            geometry.setFromPoints(curve.getPoints(50))// 或者：geometry.vertices = curve.getPoints(50);
+
+            return geometry
+        }
+        /** add fly line */
+        function addFlyLine(texture,texture2){
+            const options = {
+                map: texture,
+                useMap: true,
+                lineWidth:10,
+                resolution: resolution,
+                dashArray:0.9,  // 破折号之间的长度和间距。(0 -无破折号)
+                dashRatio:0.2, // 定义可见和不可见之间的比率(0 -更可见，1 -更不可见)。
+                dashOffset:0,
+                transparent: true,
+                sizeAttenuation: 1, //使线宽不变，不管距离(1个单位是屏幕上的1px)(0 -衰减，1 -不衰减)
+                side: THREE.DoubleSide,
+                depthTest: false,
+                blending: THREE.AdditiveBlending,
+                near: camera.near,
+                far: camera.far,
+            }
+            const list = [
+                {from:[0,50,0], to:[-250,3,-250]},
+                {from:[0,50,0], to:[250,3,-250]},
+                {from:[0,50,0], to:[-250,3,250]},
+                {from:[0,50,0], to:[250,3,250]},
+                {from:[0,50,0], to:[250,3,150]},
+                {from:[0,50,0], to:[250,3,-150]},
+                {from:[0,50,0], to:[-250,3,-150]},
+                {from:[0,50,0], to:[-250,3,-150]},
+                {from:[0,50,0], to:[-250,3,0]},
+                {from:[0,50,0], to:[250,3,0]},
+                {from:[0,50,0], to:[0,3,250]},
+                {from:[0,50,0], to:[0,3,-250]}
+            ]
+            for(let i = 0 ;i < list.length;i++){
+                if( i % 2 ===0  ){
+                    options.color = ysThree.randomColor()
+                    options.map = texture2
+                }else{
+                    options.color = ysThree.randomColor()
+                    options.map = texture
+                }
+                const v = list[i].from
+                const v2 = list[i].to
+                const  meshLine = new MeshLine()
+                meshLine.setGeometry( getFlyLineGeo(new THREE.Vector3(v[0],v[1],v[2]),new THREE.Vector3(v2[0],v2[1],v2[2]),200))
+                const line = new THREE.Mesh(meshLine.geometry, new MeshLineMaterial(options))
+                lineList.push(line)
+                scene.add(line)
+            }
+        }
+
+        /** 创建一个 3d  -- 其大小会随镜头改变而改变  */
+        function add3DLabels () {
+            function addLabel(label) {
+                $(".boxContainer").append(`<div class="box2"><div class="ys-block"><div class="ys-tit-sm"><span>标题</span></div><div class="ys-con"> ${label}  </div></div></div>`)
+                const dom = $(".boxContainer").find(".box2:last-child")[0]
+                const box = new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({transparent:true}))
+                scene.add(box)
+                const label3d = new THREE.CSS3DObject( dom )
+                box.add( label3d )
+                box.scale.set(0.2,0.2,0.2) //我们可以通过控制box的大小来控制label3d的大小
+                return box
+            }
+            addLabel('曾经沧海难为水').position.set(0,150,0)
+            addLabel('除却巫山不是云').position.set(-150,50,-155)
+            addLabel('取自花丛懒回顾').position.set(150,50,155)
+            addLabel('半缘修道半缘君').position.set(100,50,-100)
+            addLabel('直道相思了无益').position.set(-100,50,100)
+            addLabel('未妨惆怅是清狂').position.set(-5,70,40)
+            addLabel('这是一个东西型中转站').position.set(180,70,-180)
+            addLabel('这是一个南北型中转站').position.set(-180,70,180)
+
+            css3DRenderer.setSize( el.offsetWidth, el.offsetHeight )
+            css3DRenderer.domElement.style.position = 'absolute'
+            css3DRenderer.domElement.style.top = 0
+            css3DRenderer.domElement.style.pointerEvents = "none"
+            $("#box").append(css3DRenderer.domElement)
+
+        }
+
+        /** 添加中转站  */
+        function addStander(texture,texture2) {
+            const r = 20
+
+            //底座
+            const options = {
+                map: texture,
+                useMap: true,
+                lineWidth:5,
+                resolution: resolution,
+                dashArray:0.9,  // 破折号之间的长度和间距。(0 -无破折号)
+                dashRatio:0.5, // 定义可见和不可见之间的比率(0 -更可见，1 -更不可见)。
+                dashOffset:0,
+                transparent: true,
+                sizeAttenuation: 1, //使线宽不变，不管距离(1个单位是屏幕上的1px)(0 -衰减，1 -不衰减)
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                near: camera.near,
+                far: camera.far,
+            }
+            const geo = new THREE.Geometry()
+            const geo2 = new THREE.Geometry()
+            for( let j = 0; j <  2 * Math.PI - .1; j +=  2 * Math.PI / 100 ) {
+                geo.vertices.push( new THREE.Vector3(Math.cos( j )*r, 0, Math.sin( j )*r ))
+                geo2.vertices.push( new THREE.Vector3(Math.cos( j )*(r+10), 0,  Math.sin( j )*(r+10)))
+            }
+            geo.vertices.push( geo.vertices[ 0 ].clone() ) //将线闭合
+            geo2.vertices.push( geo2.vertices[ 0 ].clone() ) //将线闭合
+
+            const  meshLine = new MeshLine()
+            meshLine.setGeometry(geo)
+            const line = new THREE.Mesh(meshLine.geometry,new MeshLineMaterial(options))
+            lineList.push(line)
+            scene.add(line)
+
+            options.map = texture2
+            const  meshLine2 = new MeshLine()
+            meshLine2.setGeometry(geo2)
+            const line2 = new THREE.Mesh(meshLine2.geometry,new MeshLineMaterial(options))
+            lineList.push(line2)
+            scene.add(line2)
+
+            line2.rotateX(Math.PI)
+            stander.add(line)
+            stander.add(line2)
+
+            //呼吸气阀
+            const Gradient = {
+                vs:`
+        varying vec3 iPosition;
+        void main(){
+            iPosition = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+                fs:`
+        varying vec3 iPosition;
+        uniform float time;
+        void main(){
+            vec3 color = vec3(89./255.,208./255.,255./255.);
+            float height = iPosition.y + 15.;
+            float white = (distance(vec2(iPosition.x,iPosition.z),vec2(0.0))-6.0)/(6.0 * (sqrt(2.0)-1.0));
+            float alphax = smoothstep(0.0,1.0,white );
+            float alphay = smoothstep(1.0,0.0,height/25.0 + sin(time) * 0.2 );
+            if(height<0.1||height>29.9){
+                discard;
+            }
+            gl_FragColor = vec4(color +vec3(255.,0.,0.)* alphax * 0.0008,alphay*0.7);
+        }
+    `
+            }
+
+            textureLoader.load( '../public/images/ysThree/test1.png' ,texture =>{
+                uniforms2 = {
+                    "time": { value: 1.0 },
+                    "texture": { value: texture }
+                }
+
+                const geometry = new THREE.CylinderGeometry( r-5,r-5,80, 8 );
+                const cone = new THREE.Mesh( geometry, [
+                    new THREE.ShaderMaterial({
+                        uniforms:uniforms2,
+                        vertexShader:Gradient.vs,
+                        fragmentShader: Gradient.fs,
+                        side:THREE.DoubleSide,
+                        transparent:true
+                    }),
+                    new THREE.MeshBasicMaterial( {transparent:true,opacity : 0}),
+                    new THREE.MeshBasicMaterial( {transparent:true,opacity : 0}),
+                ] );
+                cone.position.set(0,15,0)
+                stander.add(cone)
+                stander.position.set(180,2,-180)
+                scene.add(stander)
+
+
+                const g = stander.clone()
+                g.position.set(-180,2,180)
+                scene.add(g)
+            })
+        }
+        /** 户型label */
+        function addHomeLabel() {
+            const list = [
+                [-22.6094970703125,17.756580628454685,217.64501953125],
+                [-14.350999355316162,16.81618594378233,156.04000091552734],
+                [167.9000015258789, 29.17979983240366,157.36000061035156],
+                [-188.46051788330078,17.756575629115105, -176.3800048828125]
+            ]
+
+            list.forEach((e,i) =>{
+                const t = ysThree.createSpriteText("户型"+i,{fontSize:30,color:'#fff'})
+                t.position.set(e[0],e[1]*2,e[2])
+                scene.add(t)
+            })
+        }
+
+        /*重置相机位置*/
+        camera.position.set(200,200,200)
+
+        /** 户型 查看 **/
+        const homeList = [
+            {
+                name:'mesh09',
+                texture:undefined,
+                path:"../public/images/ysThree/allScene/all/1.jpg"
+            },
+            {
+                name:'mesh39',
+                texture:undefined,
+                path:"../public/images/ysThree/allScene/all/2.jpg"
+            },
+            {
+                name:'mesh142',
+                texture:undefined,
+                path:"../public/images/ysThree/allScene/all/3.jpg"
+            },
+            {
+                name:'mesh138',
+                texture:undefined,
+                path:"../public/images/ysThree/allScene/all/4.jpg"
+            }
+        ]
+        let home = new THREE.Mesh(new THREE.SphereGeometry(25,50,50),new THREE.MeshBasicMaterial())
+        home.name = "home"
+        home.visible = false
+        //const layers = new THREE.Layers(2)
+        //layers.set(2)
+        //home.layers = layers
+        scene.add(home)
+        const setHome = (texture,position) =>{
+            home.material = new THREE.MeshBasicMaterial({
+                map:texture,
+                side:THREE.DoubleSide
+            })
+
+            //隐藏场景其他对象
+            scene.children.forEach(e=>{
+                e.visible = false
+            })
+            //清除一些多余元素和事件
+            canClick = false
+            $(".box2").hide(0)
+
+            //
+            camera.position.set(1,1,1)
+
+            // camera.layers = layers
+            home.visible = true
+            $(".exit").show(0)
+
+            audio.play()
+
+        }
+
+        //退出预览户型
+        function exit () {
+            scene.children.forEach(e=>{
+                e.visible = true
+            })
+            home.visible = false
+            canClick = true
+            $(".box2").show(0)
+            camera.position.set(200,200,200)
+            audio.pause()
+        }
+        $(".exit").click(function () {
+            exit ()
+            $(this).hide(0)
+        })
+        $(window).keyup(function (e) {
+            if(e.keyCode === 27) {
+                exit ()
+            }
+        })
+
+        /** addEventListener  */
+        //click event
+        let canClick =  true
+        el.addEventListener('click',function (e) {
+            if(!canClick) return;
+            const objList = ysThree.getIntersectObject(el,e,scene,true).objectList
+            if (objList.length > 0) {
+                if(objList[0].object.name === "国创大楼"){
+                    const  video = document.getElementById( 'video' )
+                    const texture = new THREE.VideoTexture( video )
+                    objList[0].object.material = new THREE.MeshBasicMaterial({map:texture})
+                    if ( navigator.mediaDevices && navigator.mediaDevices.getUserMedia ) {
+                        const  constraints = { video: { width: 1280, height: 720, facingMode: 'user' } }
+                        navigator.mediaDevices.getUserMedia( constraints ).then( function ( stream ) {
+                            video.srcObject = stream
+                            video.play()
+                        }).catch( function ( error ) {
+                            console.error( 'Unable to access the camera/webcam.', error )
+                        })
+                    } else {
+                        console.error( 'MediaDevices interface not available.' )
+                    }
+                }else{
+                    let p
+                    if ( objList[0].object instanceof THREE.Mesh) {
+                        objList[0].object.geometry.computeBoundingBox() //执行.computeBoundingBox()方法才会计算该几何体的包围盒Box3，然后赋值给.boundingBox属性。
+                        p = objList[0].object.geometry.boundingBox.getCenter(new THREE.Vector3())//.multiplyScalar(1) //加上这个表示放大了几倍 1为放大倍数
+                    } else if ( objList[0].object instanceof THREE.Group) {
+                        p =  new THREE.Box3().setFromObject( objList[0].object).getCenter(new THREE.Vector3())
+                    }
+
+                    // console.log(p);
+                    if(!p) return
+                    //const r = ysThree.vectorToScreen(new THREE.Vector3(p.x,p.y,p.z))
+                    // ys.messageBox({
+                    //     tit:"<span>点击事件</span>",
+                    //     showType:"right-top",
+                    //     msg:`屏幕坐标为:${r.x},${r.y} ; <br />点击的建筑是:${objList[0].object.name}`
+                    // })
+
+                    const  l = homeList.filter( e => e.name === objList[0].object.name)
+                    if(l[0]){
+                        if(l[0].texture){
+                            setHome(l[0].texture,objList[0].object.position)
+                        } else {
+                            textureLoader.load(l[0].path,texture =>{
+                                l[0].texture = texture
+                                setHome(texture,objList[0].object.position)
+                            })
+                        }
+                    }
+                }
+            }
+        })
+
+        // hover event
+        let currentHover
+        el.addEventListener('mousemove',function (e) {
+            const objList = ysThree.getIntersectObject(el,e,scene,true).objectList
+            if (objList.length > 0 && objList[0].object.type === "Mesh" && objList[0].object.name.indexOf(['mesh']) !==-1 && ["mesh01","mesh02"].indexOf(objList[0].object.name) === -1) {
+                if (currentHover !== objList[0].object) {
+                    if ( currentHover ) currentHover.material =  currentHover.currentMaterial
+                    const material1 = new THREE.MeshStandardMaterial({
+                        color:'red',
+                        opacity:0.8,
+                        transparent:true
+                    })
+                    currentHover = objList[0].object
+                    currentHover.currentMaterial = currentHover.material
+                    currentHover.material = material1
+
+                    $("body").css("cursor","pointer")
+                }
+            } else {
+                if (currentHover) currentHover.material = currentHover.currentMaterial
+                currentHover = null
+                $("body").css("cursor","auto")
+            }
+        })
+
+        /** 雪花粒子 **/
+        const clouds = []
+        let cloudsFlog = false
+        const range = 500; // 雪花出现范围
+        $(".btn1").click(function () {
+            if(cloudsFlog) return
+            cloudsFlog = !cloudsFlog
+            // 雪花纹理
+            new THREE.TextureLoader().load('../public/images/ysThree/snow.png',function (texture) {
+                const material = new THREE.PointsMaterial({
+                    size: 4,
+                    map: texture, // 纹理
+                    transparent: true, // 透明
+                    opacity: 1, // 透明度
+                    //depthTest: false, // 可以去掉texture的黑色背景
+                    blending: THREE.AdditiveBlending // 融合模式
+                });
+                material.map.repeat = new THREE.Vector2(1, 1);
+                //通过自定义几何体设置粒子位置
+                const geom = new THREE.Geometry();
+                for (let i = 0; i < 500; i++) {
+                    const v = new THREE.Vector3(
+                        Math.random() * range - range/2,
+                        Math.random() * range - range/2,
+                        Math.random() * range - range/2
+                    );
+                    v.velocityY = 0.1 + Math.random() / 5; // speed
+                    v.velocityX = (Math.random() - 0.5) / 3;
+                    v.velocityZ = (Math.random() - 0.5) / 3;
+                    geom.vertices.push(v); // vertices --顶点
+                }
+                // 点云
+                const points = new THREE.Points(geom,material);
+                clouds.push(points)
+                scene.add(points);
+            })
+        })
+
+        /** fps 显示**/
+        let stats;
+        $(".btn2").click(function () {
+            if(stats) return
+            function initStats() {
+                const stats = new Stats()
+                stats.setMode(0); // 0: fps, 1: ms
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.left = '0px';
+                stats.domElement.style.top = '0px';
+                document.body.appendChild(stats.domElement);
+                return stats;
+            }
+            stats = initStats()
+        })
+
+        /** flyTo**/
+        $(".btn3").click(function () {
+            const list = [
+                [200,5,-100],
+                [-200,100,-100],
+                [-200,100,100],
+                [200,100,100],
+                [250,20,-250]
+            ]
+            ysThree.flyTo(TWEEN,controls,{
+                position:list[0],
+                // controls:list[0], // 想要看点生效 需要 在飞行时候取消 controls.update
+                duration:5000,
+                done:function () {
+                    ysThree.flyTo(TWEEN,controls,{
+                        position:list[1],
+                        duration:5000,
+                        done:function () {
+                            ysThree.flyTo(TWEEN,controls,{
+                                position:list[2],
+                                duration:5000,
+                                done:function () {
+                                    ysThree.flyTo(TWEEN,controls,{
+                                        position:list[3],
+                                        duration:5000,
+                                        done:function () {
+                                            ysThree.flyTo(TWEEN,controls,{
+                                                position:list[4],
+                                                duration:5000
+                                            })
+                                        }
+                                    })
+                                }
+                            })
+                        }
+                    })
+                }
+            })
+        })
+
+        /** 扫描 **/
+        let circle_n = 0
+        let circle = new THREE.Group()
+        $(".btn4").click(function () {
+            if(circle.children.length>0) return
+            const R = 1
+            const geo = new THREE.Geometry()
+            for( let j = 0; j <  2 * Math.PI - .1; j +=  2 * Math.PI / 100 ) {
+                let v = new THREE.Vector3();
+                v.set( Math.cos( j )*R, Math.sin( j )*R, 0 );
+                geo.vertices.push( v );
+            }
+           geo.vertices.push( geo.vertices[ 0 ].clone() ); //将线闭合
+           textureLoader.load("../public/images/ysThree/gradual_change_red_02.png",texture_q =>{
+               const  geometry = new THREE.CylinderGeometry( R, R, 30, 64 );
+               const cylinder = new THREE.Mesh( geometry, [
+                   new THREE.MeshBasicMaterial( {map: texture_q,side:THREE.DoubleSide,transparent:true} ),
+                   new THREE.MeshBasicMaterial( {transparent:true,opacity:0} ),
+                   new THREE.MeshBasicMaterial( {transparent:true,opacity:0} )
+               ]);
+               cylinder.position.y = 5
+               circle.add(cylinder)
+
+               textureLoader.load("../public/images/ysThree/redCircle2.png",texture => {
+                   const circlePlane = new  THREE.Mesh(new THREE.CircleGeometry(R,32),new THREE.MeshStandardMaterial({
+                       map:texture,
+                       side:THREE.DoubleSide,
+                       transparent:true,
+                       opacity:0.8
+                   }))
+                   circlePlane.rotateX(-Math.PI/2)
+                   circle.add(circlePlane)
+                   circle.name = circle
+                   circle.position.set(0,1.8,0)
+                   scene.add(circle)
+               })
+           })
+        })
+
+
+        /** 飞机 **/
+        let air,airAngel = 0,ariLight
+        $(".btn5").click(function () {
+            if(air) return
+            const loader = new THREE.ColladaLoader()
+            const el = ys.message({type:'loading',msg:'正在加载飞机模型，请稍后...',icon:'loading-2'})
+            loader.load("../public/data/ysThree/models/gltf/CesiumAir/Cesium_Air.dae",object =>{
+                el.remove()
+                air = object.scene
+                scene.add(air)
+                air.translateX = 10 //通过平移改变模型中心点
+                air.scale.set(1.5,1.5,1.5)
+
+                ariLight = new THREE.SpotLight('#F426FF',10)
+                ariLight.castShadow = true
+                ariLight.angle = Math.PI / 6 //范围 默认 Math.PI / 3
+                scene.add(ariLight)
+
+            })
+        })
+
+
+
+        /** controls **/
+        function initControls() {
+            const  controls = new THREE.OrbitControls(camera, renderer.domElement);
+            // 如果使用animate方法时，将此函数删除
+            //controls.addEventListener( 'change', render );
+            // 使动画循环使用时阻尼或自转 意思是否有惯性
+            controls.enableDamping = true;
+            //动态阻尼系数 就是鼠标拖拽旋转灵敏度
+            //controls.dampingFactor = 0.25;
+            //是否可以缩放
+            controls.enableZoom = true;
+            //是否自动旋转
+            controls.autoRotate = true;
+
+            controls.autoRotateSpeed = 0.3;
+            //设置相机距离原点的最远距离
+            controls.minDistance = 1;
+            //设置相机距离原点的最远距离
+            controls.maxDistance = 1000;
+            //是否开启右键拖拽
+            controls.enablePan = true
+
+            return controls
+        }
+        const  controls = initControls()
+
+        const clock = new THREE.Clock()
+        function animate() {
+            //
+            renderer.render(scene,camera)
+            requestAnimationFrame(animate)
+
+            //3dLabel
+            css3DRenderer.render( scene, camera )
+            //
+            if(stats) stats.update()
+            //
+            TWEEN.update()
+            //
+            controls.update(clock.getDelta())
+            //
+            const clockDelta = clock.getDelta()
+
+            //线运动
+            lineList.forEach(line => {
+               line.material.uniforms.dashOffset.value -= 0.01
+            })
+
+            //雪花点云
+            clouds.forEach(points => {
+                const vertices = points.geometry.vertices;
+                vertices.forEach(v =>{
+                    // 计算位置
+                    v.y = v.y - (v.velocityY);
+                    v.x = v.x - (v.velocityX);
+                    v.z = v.z - (v.velocityZ);
+                    // 边界检查
+                    if (v.y <= -range/2) v.y = range / 2;
+                    if (v.x <= -range/2 || v.x >= range/2) v.x = v.x * -1;
+                    if (v.z <= -range/2 || v.z >= range/2) v.velocityZ = v.velocityZ * -1;
+                });
+                points.geometry.verticesNeedUpdate = true; //重要：渲染时需要更新位置（如果没有设为true,则无法显示动画）
+            })
+
+            //扫描
+            if(circle.children.length > 0) {
+                circle_n = circle_n > 300 ? 1:  circle_n + 1
+                circle.scale.set(1+circle_n,1,1+circle_n)
+                circle.traverse(e =>{
+                    if(e.material) {
+                        e.material.opacity =  circle_n === 1 ? 0.8 : e.material.opacity - 0.005
+                       if( e.material[0] ){
+                           e.material[0].opacity =  circle_n === 1 ? 1 : e.material[0].opacity - 0.001
+                       }
+                    }
+                })
+            }
+
+            //呼吸阀
+            if( uniforms2) uniforms2.time.value += clockDelta * 0.9
+
+            //飞机
+            if(air) {
+                // 每次执行渲染函数redner时候，角度累加0.005
+                airAngel -= 0.01;
+                // 圆周运动网格模型x坐标计算  绕转半径400
+                const x = 150 * Math.sin(airAngel)
+                // 圆周运动网格模型y坐标计算  绕转半径400
+                const z = 150 * Math.cos(airAngel)
+                // 每次执行render函数，更新需要做圆周运动网格模型Mesh的位置属性
+                air.position.set(x, 150, z)
+                air.lookAt(0, 150, 0)
+                if(ariLight){
+                    // ariLight.target = oneObject //
+                    ariLight.position.set(air.position.x,air.position.y,air.position.z)
+                }
+
+            }
+        }
+        animate()
+
+        $(window).resize(function () {
+            css3DRenderer.setSize( el.offsetWidth, el.offsetHeight )
+            resolution = new THREE.Vector2( el.offsetWidth,  el.offsetHeight )
+        })
+
+    })
+</script> 
+</html>

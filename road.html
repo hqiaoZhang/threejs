@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>GLTFLoader</title>
+  <title>road</title>
   <style>
     body {
       margin: 0;
@@ -15,14 +15,37 @@
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.js"></script> 
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script>
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/GLTFLoader.js"></script> 
+  <!-- <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/RGBELoader.js"></script>  -->
+  
   <script src="http://www.yanhuangxueyuan.com/js/vue@2.5.16.min.js"></script> 
   <script src="http://www.wjceo.com/lib/libs/chroma.js"></script> <!--处理颜色的库(可实现各种颜色的转换和颜色处理。)-->
   <script src="./js/TweenMax.min.js"></script> 
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/renderers/CSS2DRenderer.js"></script>
+  <style>
+  .label { 
+  }
+  .label_div{
+    color: #fff;
+    background-color: hsla(0,0%,100%,.1);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+  .label_div img {
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  </style>
 </head>
 
 <body>
   <div id="app">
       <div id="threeDom"> </div>
+      <div class="label" id="label" style="visibility:hidden">
+          <div class="label_div" >
+              <img src="./img/UI/icon.ca5d0f80.png" >
+              <span >查看设备</span></div>
+      </div>
+      
   </div>
   <script>
    const Scene = new THREE.Scene();
@@ -34,12 +57,22 @@
         5000
       );
       // Camera.position.set(-180, 430, 333)
-      
+      let labelGroup = new THREE.Group()
+      Scene.add(labelGroup)
+      createLabel()
       // 创建渲染器
       const Renderer = new THREE.WebGLRenderer({
         antialias: true,
         alpha: true, //开启alpha
       });
+
+       var labelRenderer = new THREE.CSS2DRenderer();
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
+      labelRenderer.domElement.style.position = 'absolute';
+      labelRenderer.domElement.style.top = '0';
+      labelRenderer.domElement.style.pointerEvents = 'none';
+      document.body.appendChild(labelRenderer.domElement);
+
       // 控制器
       const Controls = new  THREE.OrbitControls(Camera, Renderer.domElement);
       //gltfLoader
@@ -48,41 +81,46 @@
       // const threeDom = ref(null);
       // 首页进入相机的视角,这个视角可以在三维模型中建立一个摄像机获取摄像机的坐标,如C4D,非常准确.
       const cameraPosition = {
-        x: -30,
-        y: 71.6,
-        z: 55.5,
+        x: 21.210107944575192,
+        y: 10.911795744544929,
+        z: 54.16513693998601,
       };
       const cameraLookat = {
-        x: 10,
-        y: 0,
-        z: 10,
+        x: 20,
+        y: 10,
+        z: 0
       };
       // Camera.lookAt(cameraLookat); //设置相机方向(指向的场景对象)
     // 声明一个方法传入参数可以在不同的地方调用相机
        function cameraReset(cameraposition, lookAt)  { 
          
         TweenMax.to(Camera.position, 3, {
-          x: cameraposition.x,
-          y: cameraposition.y,
-          z: cameraposition.z,
-          ease: Expo.easeInOut, // 相机的运动动画,缓入缓出等
-          onComplete: function () {
-            console.log('111111111111111')
+          ...cameraposition,
+          // ease: Expo.easeInOut, // 相机的运动动画,缓入缓出等
+          onComplete: function () { 
           // 这是相机运动完成的回调,可以执行其他的方法.
           }
         }); 
+
+        // TweenMax.to(Camera.rotation, 5, {
+        //   x: -0.24093912946071183,
+        //   y: -0.2759238216916979,
+        //   z: -0.06684113851872768,
+        //   // ease: Expo.easeInOut, // 相机的运动动画,缓入缓出等 
+        // }); 
+
         TweenMax.to(Camera.lookAt, 3, {  // 相机的朝向
           x: lookAt.x,
           y: lookAt.y,
           z: lookAt.z,
-          ease: Expo.easeInOut,
+          // ease: Expo.easeInOut,
         });
         TweenMax.to(Controls.target, 3, { // 轨道控制器的朝向
           x: lookAt.x,
           y: lookAt.y,
           z: lookAt.z,
           // eslint-disable-next-line no-undef
-          ease: Expo.easeInOut,
+          // ease: Expo.easeInOut,
         });
       };
       
@@ -94,8 +132,8 @@
         // Scene.add(pointLight); // 点光源添加到场景中
 
          const sphereSize = 1
-    const pointLightHelper = new THREE.PointLightHelper( pointLight, sphereSize )
-    Scene.add( pointLightHelper )
+        const pointLightHelper = new THREE.PointLightHelper( pointLight, sphereSize )
+        Scene.add( pointLightHelper )
 
         // 环境光
         const ambient = new THREE.AmbientLight(0xffffff, 1);
@@ -106,12 +144,12 @@
         Scene.add(axesHelper);
         // 修改相机,场景的参数
         Camera.position.set(-180, 430, 333);
-        Camera.lookAt(0, 0, 0);
-        Controls.target = new THREE.Vector3(0, 0, 0);
+        Camera.lookAt(cameraLookat);
+        // Controls.target = new THREE.Vector3(0, 0, 0);
         // 使动画循环使用时阻尼或自转 意思是否有惯性
-        Controls.enableDamping = true;
+        // Controls.enableDamping = true;
         // 动态阻尼系数 就是鼠标拖拽旋转灵敏度
-        // Controls.dampingFactor = 0.04;
+        // Controls.dampingFactor = 0.5;
         // 是否可以旋转
         // Controls.enableRotate = false;
         // 是否可以缩放与速度
@@ -122,14 +160,14 @@
         // 设置相机距离原点的最远距离
         // Controls.maxDistance = 2000;
         // 是否开启右键拖拽
-        Controls.enablePan = false;
+        Controls.enablePan = true;
+        
         //render的相关设置
         Renderer.setPixelRatio(window.devicePixelRatio);
         Renderer.setSize(window.innerWidth, window.innerHeight);
         Renderer.inputEncoding = true;
         Renderer.outputEncoding = THREE.sRGBEncoding;
-        Renderer.setClearColor(0xd0d0d0, 1);
-        // document.body.appendChild(Renderer.domElement); //body元素中插入canvas对象
+        Renderer.setClearColor(0xd0d0d0, 1); 
         // 将renderer渲染进DOM里面
         let threeDom = document.getElementById('threeDom')
         threeDom.appendChild(Renderer.domElement);
@@ -146,10 +184,56 @@
       };
       window.addEventListener("resize", onWindowResize, false);
       //  完成以上步骤基本的场景已经配置完成
+      // var texLoader = new THREE.RGBELoader()
+      // texLoader.load('./img/photo_studio_01_1k.hdr', function(texture, textureData) {
+      //   // var texture = texLoader.load('./img/photo_studio_01_1k.hdr')
+
+      //   texture.encoding = THREE.RGBEEncoding;//设置编码属性的值
+      //   texture.minFilter = THREE.NearestFilter;//当一个纹素覆盖小于一个像素时，贴图将如何采样
+      //   texture.magFilter = THREE.NearestFilter;//当一个纹素覆盖大于一个像素时，贴图将如何采样
+      //   texture.flipY = true;//翻转图像的Y轴以匹配WebGL纹理坐标空间
+      //   // 加载.hdr贴图范围的纹理对象Texture作为.map的属性值
+      //   var material = new THREE.MeshBasicMaterial({
+      //     map: texture
+      //   });
+
+        // Gltfloader.load("model/road.glb", (gltf) => { 
+        //   gltf.scene.traverse( function ( child ) { 
+        //     if ( child.isMesh ) { 
+        //         child.frustumCulled = true;
+        //         //模型阴影
+        //         child.castShadow = true;
+        //         //模型自发光
+        //         child.material.opacity = 0.7;
+        //         // 
+        //         child.material.emissive =  child.material.color;
+        //         child.material.emissiveMap = child.material.map ;
+        //         // child.material.map = texture
+        //     }})   
+        //   //  gltf.scene.map = texture 
+        //   Scene.add(gltf.scene); 
+        //   // 模型加载完,进行相机的初始化,传入设置的参数,模型加载为异步
+        //   cameraReset(cameraPosition, cameraLookat);
+        //   setTimeout(() => {
+        //     showLable('visible')
+        //   }, 3500)
+          
+        //   }, function (xhr) {
+        //     // 控制台查看加载进度xhr
+        //     console.log(Math.floor(xhr.loaded / xhr.total * 100)) 
+            
+        // });
+        // textureData.width / textureData.height表示图像宽高比
+        // 矩形几何体宽高比和图形的宽高比保持一致，避免图像显示伸缩
+        // var geo = new THREE.PlaneBufferGeometry(textureData.width / textureData.height * 100, 1 * 100);
+        // var mesh = new THREE.Mesh(geo, material);
+        // Scene.add(mesh)
+      // }); 
+
 
         Gltfloader.load("model/road.glb", (gltf) => { 
           gltf.scene.traverse( function ( child ) { 
-            if ( child.isMesh ) {
+            if ( child.isMesh ) { 
                 child.frustumCulled = true;
                 //模型阴影
                 child.castShadow = true;
@@ -157,28 +241,119 @@
                 child.material.opacity = 0.7;
                 child.material.emissive =  child.material.color;
                 child.material.emissiveMap = child.material.map ;
-            }}) 
-
-          Scene.add(gltf.scene);
-          // setRandomColors( gltf.scene, scale);
+            }})   
+          Scene.add(gltf.scene); 
+          createDevice()
           // 模型加载完,进行相机的初始化,传入设置的参数,模型加载为异步
           cameraReset(cameraPosition, cameraLookat);
+         
+          setTimeout(() => {
+            showLable('visible')
+          }, 3500)
+          
           }, function (xhr) {
             // 控制台查看加载进度xhr
             console.log(Math.floor(xhr.loaded / xhr.total * 100)) 
             
         });
-          
+
+         // 显示标签 
+        function showLable(style) {
+          var arr = document.getElementsByClassName("label");
+          for (var i = 0; i < arr.length; i++) {
+              arr[i].style.visibility = style  
+          }
+        }
+
+        function createDevice() {
+          var texLoader = new THREE.TextureLoader()
+          var texture = texLoader.load('./img/device.png')
+          var material = new THREE.MeshBasicMaterial({
+            map: texture
+            // color: 0xff00fff
+          });
+            // 矩形几何体宽高比和图形的宽高比保持一致，避免图像显示伸缩
+          var geo = new THREE.PlaneBufferGeometry(0.15, 0.2);
+          var mesh = new THREE.Mesh(geo, material);
+          mesh.position.set(25, 10.21404897186032, 23.496145045288593 )
+          Scene.add(mesh)
+        }
+
+        // 创建标签 
+        function createLabel() {  
+          var text = document.getElementById('label').cloneNode(true);
+          text.style.visibility = "hiddle";
+          text.className = "label"; 
+          var label = new THREE.CSS2DObject(text); 
+          label.position.copy({
+            x: 28, 
+            y: 9.5444, 
+            z: 8
+          }); 
+          labelGroup.add(label)
+        }  
+        
+
+          // 渲染 
          function Render() {
           requestAnimationFrame(Render);
           Controls.update();
           Renderer.clear();
           Renderer.render(Scene, Camera);
+          labelRenderer.render(Scene, Camera);
+          // console.log(Camera)
         };  
 
-    
+        var raycaster = new THREE.Raycaster()
+var mouse = new THREE.Vector2()
+
+let isshow = true
+function onMouseClick(event){
+
+    //将鼠标点击位置的屏幕坐标转换成threejs中的标准坐标
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+    mouse.y = (event.clientY/window.innerHeight) *2 + 1
+ 
+    // 通过鼠标点的位置和当前相机的矩阵计算出raycaster
+    raycaster.setFromCamera( mouse, Camera );
+
+    // 获取raycaster直线和所有模型相交的数组集合
+    var intersects = raycaster.intersectObjects( labelGroup.children );
+     
+    showLable('hidden')
+    let xyz = {
+      x: 25.33007725530663,
+      y: 10.21404897186032,
+      z: 23.496145045288593,
+    }
+    if(isshow) {
+      let lookAt = {
+        x: 20,
+        y: 10,
+        z: 0
+      }
+      cameraReset(xyz, lookAt);
+      isshow = false
+      // setTimeout(() => {
+      //   createDevice()
+      // }, 3000)
+    }
+   
+    }
+
+window.addEventListener( 'click', onMouseClick, false );
+        
+        // Controls.addEventListener('change', Render);//监听鼠标、键盘事件  
+        window.addEventListener( 'click', onMouseClick, false );
+
     var vm = new Vue({
       el: "#app",
+      data() {
+        return {
+          isShowDetails: false
+        }
+      },
       mounted() {
         initThreeScene();
         Render();

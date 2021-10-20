@@ -662,6 +662,7 @@
       var raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
       var intersects = raycaster.intersectObjects(AllGroup.children, true);
+      console.log('intersects', intersects)
       if (intersects.length > 0) {
           vm.bool = true;
           var mesh = intersects[0].object;

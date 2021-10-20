@@ -15,12 +15,13 @@
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.js"></script> 
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script>
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/GLTFLoader.js"></script> 
-  <!-- <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/RGBELoader.js"></script>  -->
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/loaders/RGBELoader.js"></script> 
   
   <script src="http://www.yanhuangxueyuan.com/js/vue@2.5.16.min.js"></script> 
   <script src="http://www.wjceo.com/lib/libs/chroma.js"></script> <!--处理颜色的库(可实现各种颜色的转换和颜色处理。)-->
   <script src="./js/TweenMax.min.js"></script> 
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/renderers/CSS2DRenderer.js"></script>
+  <script src="https://www.wellyyss.cn/public/plugins/others/jquery-1.10.2.min.js"></script>
   <style>
   .label { 
   }
@@ -34,20 +35,97 @@
     vertical-align: middle;
     margin-right: 4px;
   }
+  .imgcontent {
+    color: #fff;
+    text-align: center;
+  }
+  .imgcontent > img {
+    width: 50px;
+  }
+  .detail {
+    margin-top: 14px;
+    position: relative;
+  }
+  .detail img {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translate(-50%);
+  }
+  .checkequipment {
+    z-index: 100;
+  }
+  .mark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,.6);
+    z-index: 99;
+    /* overflow: hidden; */
+  }
+  .solveproblem{
+    position: relative;
+    width: 240px;
+    font-size: 16px;
+    color: #1D84EF;
+  }
+  .solveproblem span {
+    width: 100%;
+    position: absolute;
+    font-weight: bold;
+  }
+  .solveproblem span:first-child {
+    top: -66px;
+    left: 90px;
+  }
+  .solveproblem span:nth-of-type(2) {
+    top: -18px;
+    left: 162px;
+  }
+  .solveproblem span:nth-of-type(3) {
+    top: 33px;
+    left: 162px;
+  }
+  .solveproblem span:nth-of-type(4) {
+    top: 92px;
+    left: 88px;
+  }
   </style>
 </head>
 
 <body>
   <div id="app">
       <div id="threeDom"> </div>
-      <div class="label" id="label" style="visibility:hidden">
+      <div id="label" style="visibility:hidden">
           <div class="label_div" >
               <img src="./img/UI/icon.ca5d0f80.png" >
               <span >查看设备</span></div>
       </div>
-      
+      <div id="checkequipment"  style="visibility:hidden">
+          <div class="solveproblem">
+              <span>1、机电设备全生命周期管理</span>
+              <span>2、环境监测并远程启动</span>
+              <span>3、多协议接入，数据可视化</span>
+              <span>4、精准定位故障、智能运维</span>
+             </div>
+
+      <div class="imgcontent" id="imgcontent" >
+          <img src="./img/UI/model.392704b0.png" alt="" />
+          <div class="detail">
+           <img src="./img/UI/icon.ca5d0f80.png" alt="" />
+           <p>查看详情</p>
+          </div>
+         </div>
+        </div>   
+      <div class="mark" v-show="isShowDetails"></div>
   </div>
   <script>
+    let cabinet = null
+    let T0 = new Date();//上次时间
    const Scene = new THREE.Scene();
       // 透视相机
       const Camera = new THREE.PerspectiveCamera(
@@ -143,24 +221,27 @@
         const axesHelper = new THREE.AxesHelper(500);
         Scene.add(axesHelper);
         // 修改相机,场景的参数
-        Camera.position.set(-180, 430, 333);
+        // x: 21.210107944575192,
+        // y: 10.911795744544929,
+        // z: 54.16513693998601,
+        Camera.position.set(-180, 200, 300);
         Camera.lookAt(cameraLookat);
         // Controls.target = new THREE.Vector3(0, 0, 0);
         // 使动画循环使用时阻尼或自转 意思是否有惯性
         // Controls.enableDamping = true;
-        // 动态阻尼系数 就是鼠标拖拽旋转灵敏度
+        // // 动态阻尼系数 就是鼠标拖拽旋转灵敏度
         // Controls.dampingFactor = 0.5;
-        // 是否可以旋转
+        // // 是否可以旋转
         // Controls.enableRotate = false;
-        // 是否可以缩放与速度
+        // // 是否可以缩放与速度
         // Controls.enableZoom = false;
-        // 是否自动旋转
-        // 设置相机距离原点的最远距离
+        // // 是否自动旋转
+        // // 设置相机距离原点的最远距离
         // Controls.minDistance = 1;
-        // 设置相机距离原点的最远距离
+        // // 设置相机距离原点的最远距离
         // Controls.maxDistance = 2000;
-        // 是否开启右键拖拽
-        Controls.enablePan = true;
+        // // 是否开启右键拖拽
+        // Controls.enablePan = true;
         
         //render的相关设置
         Renderer.setPixelRatio(window.devicePixelRatio);
@@ -184,113 +265,187 @@
       };
       window.addEventListener("resize", onWindowResize, false);
       //  完成以上步骤基本的场景已经配置完成
-      // var texLoader = new THREE.RGBELoader()
-      // texLoader.load('./img/photo_studio_01_1k.hdr', function(texture, textureData) {
-      //   // var texture = texLoader.load('./img/photo_studio_01_1k.hdr')
+      var texLoader = new THREE.RGBELoader()
+      texLoader.load('./img/photo_studio_01_1k.hdr', function(texture, textureData) {
+        // var texture = texLoader.load('./img/photo_studio_01_1k.hdr')
 
-      //   texture.encoding = THREE.RGBEEncoding;//设置编码属性的值
-      //   texture.minFilter = THREE.NearestFilter;//当一个纹素覆盖小于一个像素时，贴图将如何采样
-      //   texture.magFilter = THREE.NearestFilter;//当一个纹素覆盖大于一个像素时，贴图将如何采样
-      //   texture.flipY = true;//翻转图像的Y轴以匹配WebGL纹理坐标空间
-      //   // 加载.hdr贴图范围的纹理对象Texture作为.map的属性值
-      //   var material = new THREE.MeshBasicMaterial({
-      //     map: texture
-      //   });
+        texture.encoding = THREE.RGBEEncoding;//设置编码属性的值
+        texture.minFilter = THREE.NearestFilter;//当一个纹素覆盖小于一个像素时，贴图将如何采样
+        texture.magFilter = THREE.NearestFilter;//当一个纹素覆盖大于一个像素时，贴图将如何采样
+        texture.flipY = true;//翻转图像的Y轴以匹配WebGL纹理坐标空间
+        // 加载.hdr贴图范围的纹理对象Texture作为.map的属性值
+        var material = new THREE.MeshBasicMaterial({
+          map: texture
+        });
+
+        Gltfloader.load("model/road.glb", (gltf) => { 
+          gltf.scene.traverse( function ( child ) {  
+              if ( child.isMesh ) { 
+                child.frustumCulled = true;
+                
+
+                //模型阴影
+                child.castShadow = true; 
+                if(child.name.includes('路灯') || child.name.includes('ludeng') || child.name.includes('柜子-柜子金属')) {
+                  child.material.map = texture 
+                }else {  
+                 
+                  child.material.emissive =  child.material.color;
+                  child.material.emissiveMap = child.material.map ;
+                }
+               
+               
+                if(!child.name.includes('baixian')) {
+                  child.material.opacity = 0.7
+                }
+                if(child.name.includes('楼')) {
+                  // child.material.color = new THREE.Color(0xeeeeee) 
+                  // child.material.opacity = 1
+                }
+                 
+            }
+            // console.log(child.name)
+            if(child.name == '柜门') {
+              cabinet = child
+            }
+          })   
+          
+           gltf.scene.background = texture 
+            Scene.add(gltf.scene); 
+            // 模型加载完,进行相机的初始化,传入设置的参数,模型加载为异步
+            cameraReset(cameraPosition, cameraLookat);
+            setTimeout(() => {
+              showLable('label', 'visible')
+            }, 3500)
+          
+          } );
+        // textureData.width / textureData.height表示图像宽高比
+        // 矩形几何体宽高比和图形的宽高比保持一致，避免图像显示伸缩
+        var geo = new THREE.PlaneBufferGeometry(textureData.width / textureData.height * 100, 1 * 100);
+        var mesh = new THREE.Mesh(geo, material);
+        // Scene.add(mesh)
+      }); 
+
 
         // Gltfloader.load("model/road.glb", (gltf) => { 
-        //   gltf.scene.traverse( function ( child ) { 
+        //   gltf.scene.traverse( function ( child ) {  
+        //     console.log(child)
+        //     if(child.name == '柜门') {
+        //       cabinet = child
+        //     }
         //     if ( child.isMesh ) { 
         //         child.frustumCulled = true;
         //         //模型阴影
         //         child.castShadow = true;
         //         //模型自发光
         //         child.material.opacity = 0.7;
-        //         // 
         //         child.material.emissive =  child.material.color;
         //         child.material.emissiveMap = child.material.map ;
-        //         // child.material.map = texture
         //     }})   
-        //   //  gltf.scene.map = texture 
         //   Scene.add(gltf.scene); 
+         
         //   // 模型加载完,进行相机的初始化,传入设置的参数,模型加载为异步
         //   cameraReset(cameraPosition, cameraLookat);
+         
         //   setTimeout(() => {
-        //     showLable('visible')
+        //     showLable('label', 'visible')
         //   }, 3500)
           
-        //   }, function (xhr) {
-        //     // 控制台查看加载进度xhr
-        //     console.log(Math.floor(xhr.loaded / xhr.total * 100)) 
-            
-        // });
-        // textureData.width / textureData.height表示图像宽高比
-        // 矩形几何体宽高比和图形的宽高比保持一致，避免图像显示伸缩
-        // var geo = new THREE.PlaneBufferGeometry(textureData.width / textureData.height * 100, 1 * 100);
-        // var mesh = new THREE.Mesh(geo, material);
-        // Scene.add(mesh)
-      // }); 
-
-
-        Gltfloader.load("model/road.glb", (gltf) => { 
-          gltf.scene.traverse( function ( child ) { 
-            if ( child.isMesh ) { 
-                child.frustumCulled = true;
-                //模型阴影
-                child.castShadow = true;
-                //模型自发光
-                child.material.opacity = 0.7;
-                child.material.emissive =  child.material.color;
-                child.material.emissiveMap = child.material.map ;
-            }})   
-          Scene.add(gltf.scene); 
-          createDevice()
-          // 模型加载完,进行相机的初始化,传入设置的参数,模型加载为异步
-          cameraReset(cameraPosition, cameraLookat);
-         
-          setTimeout(() => {
-            showLable('visible')
-          }, 3500)
+        //   });
           
-          }, function (xhr) {
-            // 控制台查看加载进度xhr
-            console.log(Math.floor(xhr.loaded / xhr.total * 100)) 
-            
-        });
+          function addLogo() {
+            let geometry = new THREE.PlaneGeometry(0.6, 0.1)
+            var texture = new THREE.TextureLoader().load("./img/logo.png");
+            var material = new THREE.MeshLambertMaterial({
+                // color: 0xffffff
+                map: texture,
+                side: THREE.DoubleSide,
+                transparent: true,
+            });
+            let position = {
+              x: 25.209309768676758, 
+            y: 9.555, 
+            z: 18.298152923583984
+          }
+            let mesh = new THREE.Mesh(geometry, material)
+            mesh.position.copy(position)
+            Scene.add(mesh)
+          }
 
          // 显示标签 
-        function showLable(style) {
-          var arr = document.getElementsByClassName("label");
+        function showLable(className, style) { 
+          var arr = document.getElementsByClassName(className); 
           for (var i = 0; i < arr.length; i++) {
-              arr[i].style.visibility = style  
+              arr[i].style.visibility = style   
           }
         }
 
         function createDevice() {
-          var texLoader = new THREE.TextureLoader()
-          var texture = texLoader.load('./img/device.png')
-          var material = new THREE.MeshBasicMaterial({
-            map: texture
-            // color: 0xff00fff
-          });
-            // 矩形几何体宽高比和图形的宽高比保持一致，避免图像显示伸缩
-          var geo = new THREE.PlaneBufferGeometry(0.15, 0.2);
-          var mesh = new THREE.Mesh(geo, material);
-          mesh.position.set(25, 10.21404897186032, 23.496145045288593 )
-          Scene.add(mesh)
+          // 移动柜门
+          // TweenMax.to(cabinet.position, 3, {
+          //   x: 24.009309768676758, 
+          //   y: 9.972362518310547, 
+          //   z: 18.298152923583984
+          // })
+          // TweenMax.to(cabinet.rotation, 3, {
+          //   x: -0,
+          //   y: 10,
+          //   z: -0
+          // })
+          T0 = new Date();//上次时间
+          renderCabinet()
+          setTimeout(() => {
+            vm.isShowDetails = true
+            showLable('checkequipment', 'visible')
+          }, 2000)
+        }
+        
+        function renderCabinet() {
+          requestAnimationFrame(renderCabinet) 
+          let T1 = new Date();//本次时间
+          let t = T1-T0;//时间差
+          T0 = T1;//把本次时间赋值给上次时间  
+          if(cabinet.rotation.y < 0) {
+            return
+          }
+          cabinet.rotateY(-0.001*t);//旋转角速度0.001弧度每毫秒
+
         }
 
         // 创建标签 
         function createLabel() {  
+          addLogo()
           var text = document.getElementById('label').cloneNode(true);
           text.style.visibility = "hiddle";
           text.className = "label"; 
           var label = new THREE.CSS2DObject(text); 
-          label.position.copy({
+          let position = {
             x: 28, 
             y: 9.5444, 
             z: 8
-          }); 
+          }
+          label.position.copy(position); 
           labelGroup.add(label)
+
+          let geometry = new THREE.PlaneGeometry(2, 1)
+          var material = new THREE.MeshLambertMaterial({
+              color: 0xffffff
+          });
+          let mesh = new THREE.Mesh(geometry, material)
+          mesh.position.copy(position)
+          // labelGroup.add(mesh)
+
+          let details = document.getElementById('checkequipment').cloneNode(true); 
+          details.style.visibility = "hiddle";
+          details.className = "checkequipment"; 
+          var label2 = new THREE.CSS2DObject(details); 
+          label2.position.copy({
+            x: 25.109309768676758, 
+            y: 10, 
+            z: 18.298152923583984
+          }); 
+          labelGroup.add(label2)
+
         }  
         
 
@@ -305,47 +460,64 @@
         };  
 
         var raycaster = new THREE.Raycaster()
-var mouse = new THREE.Vector2()
+        var mouse = new THREE.Vector2() 
+        let isshow = true
+        function onMouseClick(event){ 
+          // //将鼠标点击位置的屏幕坐标转换成threejs中的标准坐标 
+          // mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+          // mouse.y = (event.clientY/window.innerHeight) *2 + 1 
+          // // 通过鼠标点的位置和当前相机的矩阵计算出raycaster
+          // raycaster.setFromCamera( mouse, Camera ); 
+          // console.log(mouse.x, mouse.y)
+          // // 获取raycaster直线和所有模型相交的数组集合
+          console.log('labelGroup', labelGroup.children)
+          // var intersects = raycaster.intersectObjects(Scene.children, true);
 
-let isshow = true
-function onMouseClick(event){
+          var Sx = event.clientX;//鼠标单击位置横坐标
+          var Sy = event.clientY;//鼠标单击位置纵坐标
+          let mainBox = $('#threeDom')
+          let left = mainBox[0].getBoundingClientRect().left
+          let top = mainBox[0].getBoundingClientRect().top
+          let width = mainBox.width()
+          let height = mainBox.height()  
+          //屏幕坐标转标准设备坐标
+          var x = ( (Sx - left) / width ) * 2 - 1;//标准设备横坐标
+          var y = -( (Sy - top) / height ) * 2 + 1;//标准设备纵坐标 
+          var standardVector  = new THREE.Vector3(x, y, 0);//标准设备坐标
+          // //标准设备坐标转世界坐标
+          var worldVector = standardVector.unproject(Camera);
+          // //射线投射方向单位向量(worldVector坐标减相机位置坐标)
+          var ray = worldVector.sub(Camera.position).normalize();
+          // //创建射线投射器对象
+          var raycaster = new THREE.Raycaster(Camera.position, ray);
+          // var raycaster = new THREE.Raycaster()
+          // raycaster.setFromCamera(new THREE.Vector2(x, y), Camera)
+          //返回射线选中的对象
+          var intersects = raycaster.intersectObjects(labelGroup.children);
 
-    //将鼠标点击位置的屏幕坐标转换成threejs中的标准坐标
-
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1
-    mouse.y = (event.clientY/window.innerHeight) *2 + 1
- 
-    // 通过鼠标点的位置和当前相机的矩阵计算出raycaster
-    raycaster.setFromCamera( mouse, Camera );
-
-    // 获取raycaster直线和所有模型相交的数组集合
-    var intersects = raycaster.intersectObjects( labelGroup.children );
-     
-    showLable('hidden')
-    let xyz = {
-      x: 25.33007725530663,
-      y: 10.21404897186032,
-      z: 23.496145045288593,
+          console.log('intersects', intersects)
+          showLable('label', 'hidden')
+          let xyz = {
+            x: 25.326485624190216,
+            y: 9.464168510120963,
+            z: 21.35443443177491,
+          }
+          if(isshow) {
+            let lookAt = {
+              x: 22,
+              y: 10,
+              z: -2
+            }
+            cameraReset(xyz, lookAt);
+            isshow = false
+            
+            setTimeout(() => {
+              createDevice()
+            }, 3000)
+          } 
     }
-    if(isshow) {
-      let lookAt = {
-        x: 20,
-        y: 10,
-        z: 0
-      }
-      cameraReset(xyz, lookAt);
-      isshow = false
-      // setTimeout(() => {
-      //   createDevice()
-      // }, 3000)
-    }
-   
-    }
 
-window.addEventListener( 'click', onMouseClick, false );
-        
-        // Controls.addEventListener('change', Render);//监听鼠标、键盘事件  
-        window.addEventListener( 'click', onMouseClick, false );
+    window.addEventListener( 'click', onMouseClick, false ); 
 
     var vm = new Vue({
       el: "#app",

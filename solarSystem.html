@@ -49,6 +49,7 @@ Data.planet.forEach(function(obj) {
   planet.angle = 2 * Math.PI * Math.random();
   planet.name = obj.name;
   planetGroup.add(planet);
+  console.log(planet)
   intersectsArr.push(planet) 
   var line = arcCurve(obj.revolutionR);
   scene.add(line);
@@ -137,6 +138,7 @@ function choose(event) {
   var raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
   var intersects = raycaster.intersectObjects(intersectsArr, false);
+  console.log('intersects', intersects)
   if (intersects.length > 0) {
 
     console.log(intersects[0].object.name);

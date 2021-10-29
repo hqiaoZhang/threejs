@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>3D仓库</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #label {
+      position: absolute;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.6);
+      line-height: 1;
+      border-radius: 5px;
+    }
+
+    #video {
+      position: absolute;
+      width: 0;
+      height: 0;
+    }
+  </style>
+  <!--引入three.js三维引擎-->
+  <script src="./js/three.js"></script> 
+  <script src="./js/jquery-1.11.0.min.js"></script>  
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script> 
+  <script src="./js/stats.min.js"></script>
+  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/libs/dat.gui.min.js"></script>
+  <script src="./js/ThreeBSP.js"></script> 
+  <script src="./js/EffectComposer.js"></script>
+  <script src="./js/RenderPass.js"></script>
+  <script src="./js/OutlinePass.js"></script>
+  <script src="./js/FXAAShader.js"></script>
+  <script src="./js/ShaderPass.js"></script>
+  <script src="./js/CopyShader.js"></script>
+  <script src="./utils/composer.js"></script>
+</head>
+
+<body>
+    <div id="label"></div>
+    <div id="container"></div>
+  <script>
+     var stats = initStats()
+     var scene, camera, renderer, light;
+     var width = window.innerWidth
+     var height = window.innerHeight
+
+     var matArrayA = []; //内墙
+     var matArrayB = []; //外墙
+      // 初始化场景
+      function initScene() {
+        scene = new THREE.Scene()
+      } 
+      // 初始化相机
+      function initCamera() { 
+         camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000);
+         camera.position.set(0, 800, 1500);
+         camera.lookAt(new THREE.Vector3(0, 0, 0));
+      }
+      // 初始化灯光
+      function initLight() {
+        var directionalLight = new THREE.DirectionalLight(0xffffff, 0.3); //模拟远处类似太阳的光源
+        directionalLight.color.setHSL(0.1, 1, 0.95);
+        directionalLight.position.set(0, 200, 0).normalize();
+        scene.add(directionalLight);
+
+        var ambient = new THREE.AmbientLight(0xffffff, 1); //AmbientLight,影响整个场景的光源
+        ambient.position.set(0, 0, 0);
+        scene.add(ambient);
+      }
+      // 初始化性能插件
+      function initStats() {
+        var stats = new Stats();
+
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = '0px';
+        stats.domElement.style.top = '0px';
+
+        document.body.appendChild(stats.domElement);
+        return stats;
+      }
+      // 初始化渲染器
+      function initRenderer() {
+        renderer = new THREE.WebGLRenderer({
+          antialias: true
+        });
+        renderer.setSize(width, height);
+        renderer.setClearColor(0x4682B4, 1.0);
+        document.body.appendChild(renderer.domElement);
+      }
+
+      // 初始化轨迹球控件
+    function initControls() {
+      controls = new THREE.OrbitControls( camera, renderer.domElement );
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.5;
+      // 视角最小距离
+      controls.minDistance = 100;
+      // 视角最远距离
+      controls.maxDistance = 5000;
+      // 最大角度
+      controls.maxPolarAngle = Math.PI/2.2;
+    } 
+   
+      
+      //创建地板
+      function createFloor(){
+        var loader = new THREE.TextureLoader();
+        loader.load("./images/floor.jpg",function(texture){
+          texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+          texture.repeat.set( 10, 10 );
+          var floorGeometry = new THREE.BoxGeometry(2600, 1400, 1);
+          var floorMaterial = new THREE.MeshBasicMaterial( { map: texture, side: THREE.DoubleSide } );
+          var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+          floor.position.y = -0.5;
+          floor.rotation.x = Math.PI / 2;
+          floor.name = "地面";
+          scene.add(floor);
+        });
+      } 
+       
+       
+      /**
+      *  创建墙
+      * @param {Number} width, height, depth 墙体的长宽高 
+      * @param {Number} angle 墙体旋转的角度
+      * @param {Number} material 材质
+      * @param {Number} x, y, z 场景中的具体位置 
+      * @param {Number} name 该物体的名字 
+      */
+      function createCubeWall(width, height, depth, angle, material, x, y, z, name){
+        var cubeGeometry = new THREE.BoxGeometry(width, height, depth );
+        var cube = new THREE.Mesh( cubeGeometry, material );
+        cube.position.x = x;
+        cube.position.y = y;
+        cube.position.z = z;
+        cube.rotation.y += angle*Math.PI;  //-逆时针旋转,+顺时针
+        cube.name = name;
+        scene.add(cube);
+    } 
+ 
+    /**
+      *  创建门_左侧
+      * @param {Number} width, height, depth 左侧门的长宽高
+      * @param {Number} angle 左侧门体旋转的角度
+      * @param {Number} material 材质
+      * @param {Number} x, y, z 场景中的具体位置 
+      * @param {Number} name 该物体的名字 
+      */
+    function createDoor_left(width, height, depth, angle, x, y, z, name){
+      var loader = new THREE.TextureLoader();
+      loader.load("./images/door_left.png",function(texture){
+          var doorgeometry = new THREE.BoxGeometry(width, height, depth);
+          doorgeometry.translate(50, 0, 0);
+          var doormaterial = new THREE.MeshBasicMaterial({map:texture,color:0xffffff});
+          doormaterial.opacity = 1.0;
+          doormaterial.transparent = true;
+          var door = new THREE.Mesh( doorgeometry,doormaterial);
+          door.position.set(x, y, z);
+          door.rotation.y += angle*Math.PI;  //-逆时针旋转,+顺时针
+          door.name = name;
+          scene.add(door);
+      });
+    }
+ 
+    /**
+    *  创建门_右侧
+    * @param {Number} width, height, depth 右侧门的长宽高
+    * @param {Number} angle 右侧门体旋转的角度
+    * @param {Number} material 材质
+    * @param {Number} x, y, z 场景中的具体位置 
+    * @param {Number} name 该物体的名字 
+    */ 
+    function createDoor_right(width, height, depth, angle, x, y, z, name){
+      var loader = new THREE.TextureLoader();
+      loader.load("./images/door_right.png",function(texture){
+          var doorgeometry = new THREE.BoxGeometry(width, height, depth);
+          doorgeometry.translate(-50, 0, 0);
+          var doormaterial = new THREE.MeshBasicMaterial({map:texture,color:0xffffff});
+          doormaterial.opacity = 1.0;
+          doormaterial.transparent = true;
+          var door = new THREE.Mesh( doorgeometry,doormaterial);
+          door.position.set(x, y, z);
+          door.rotation.y += angle*Math.PI;  //-逆时针旋转,+顺时针
+          door.name = name;
+          scene.add(door);
+      });
+    }
+ 
+    /**
+    * 创建窗户
+    * @param {Number} width, height, depth 窗户的长宽高
+    * @param {Number} angle 窗户体旋转的角度
+    * @param {Number} material 材质
+    * @param {Number} x, y, z 场景中的具体位置 
+    * @param {Number} name 该物体的名字 
+    */ 
+
+    function createWindow(width, height, depth, angle, x, y, z, name){
+      var loader = new THREE.TextureLoader();
+      loader.load("./images/window.png",function(texture){
+          var windowgeometry = new THREE.BoxGeometry(width, height, depth);
+          var windowmaterial = new THREE.MeshBasicMaterial({map:texture,color:0xffffff});
+          windowmaterial.opacity = 1.0;
+          windowmaterial.transparent = true;
+          var window = new THREE.Mesh( windowgeometry,windowmaterial);
+          window.position.set(x, y, z);
+          window.rotation.y += angle*Math.PI;  //-逆时针旋转,+顺时针
+          window.name = name;
+          scene.add(window);
+      });
+    }
+
+
+    //返回墙对象
+    function returnWallObject(width, height, depth, angle, material, x, y, z, name){
+        var cubeGeometry = new THREE.BoxGeometry(width, height, depth);
+        var cube = new THREE.Mesh( cubeGeometry, material );
+        cube.position.x = x;
+        cube.position.y = y;
+        cube.position.z = z;
+        cube.rotation.y += angle*Math.PI;
+        cube.name = name;
+        return cube;
+    }
+   
+    
+
+    //墙上挖门窗，通过两个几何体生成BSP对象
+    function createResultBsp(bsp, objects_cube){
+        var material = new THREE.MeshPhongMaterial({color:0x9cb2d1,specular:0x9cb2d1,shininess:30,transparent:true,opacity:1});
+        var BSP = new ThreeBSP(bsp);
+        for(var i = 0; i < objects_cube.length; i++){
+            var less_bsp = new ThreeBSP(objects_cube[i]);
+            BSP = BSP.subtract(less_bsp);
+        }
+        var result = BSP.toMesh(material);
+        result.material.flatshading = THREE.FlatShading;
+        result.geometry.computeFaceNormals();  //重新计算几何体侧面法向量
+        result.geometry.computeVertexNormals();
+        result.material.needsUpdate = true;  //更新纹理
+        result.geometry.buffersNeedUpdate = true;
+        result.geometry.uvsNeedUpdate = true;
+        scene.add(result);
+    }
+
+     //创建墙纹理
+      function createWallMaterail(){
+        matArrayA.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //前  0xafc0ca :灰色
+        matArrayA.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //后
+        matArrayA.push(new THREE.MeshPhongMaterial({color: 0xd6e4ec}));  //上  0xd6e4ec： 偏白色
+        matArrayA.push(new THREE.MeshPhongMaterial({color: 0xd6e4ec}));  //下
+        matArrayA.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //左    0xafc0ca :灰色
+        matArrayA.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //右
+
+        matArrayB.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //前  0xafc0ca :灰色
+        matArrayB.push(new THREE.MeshPhongMaterial({color: 0x9cb2d1}));  //后  0x9cb2d1：淡紫
+        matArrayB.push(new THREE.MeshPhongMaterial({color: 0xd6e4ec}));  //上  0xd6e4ec： 偏白色
+        matArrayB.push(new THREE.MeshPhongMaterial({color: 0xd6e4ec}));  //下
+        matArrayB.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //左   0xafc0ca :灰色
+        matArrayB.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //右
+    } 
+
+      // 初始化模型
+      function initContent() {
+        createFloor() 
+        createCubeWall(10, 200, 1400, 0, matArrayB, -1295, 100, 0, "墙面"); 
+        createCubeWall(10, 200, 1400, 1, matArrayB, 1295, 100, 0, "墙面");
+        createCubeWall(10, 200, 2600, 1.5, matArrayB, 0, 100, -700, "墙面");
+         //创建挖了门的墙(首先创建一个实心的墙面)
+        var wall = returnWallObject(2600, 200, 10, 0, matArrayB, 0, 100, 700, "墙面");
+        // 再创建出实心的门窗
+        var door_cube1 = returnWallObject(200, 180, 10, 0, matArrayB, -600, 90, 700, "前门1");
+        var door_cube2 = returnWallObject(200, 180, 10, 0, matArrayB, 600, 90, 700, "前门2");
+        var window_cube1 = returnWallObject(100, 100, 10, 0, matArrayB, -900, 90, 700, "窗户1");
+        var window_cube2 = returnWallObject(100, 100, 10, 0, matArrayB, 900, 90, 700, "窗户2");
+        var window_cube3 = returnWallObject(100, 100, 10, 0, matArrayB, -200, 90, 700, "窗户3");
+        var window_cube4 = returnWallObject(100, 100, 10, 0, matArrayB, 200, 90, 700, "窗户4");
+        // 最后ThreeBSP这个库像做减法一样：实心的墙面减去实心的门窗(ThreeBSP这个库就可以实现差集(相减)、并集(组合、相加)、交集(两几何体重合的部分)等一系列功能)
+        var objects_cube = [];
+        objects_cube.push(door_cube1);
+        objects_cube.push(door_cube2);
+        objects_cube.push(window_cube1);
+        objects_cube.push(window_cube2);
+        objects_cube.push(window_cube3);
+        objects_cube.push(window_cube4);
+        createResultBsp(wall, objects_cube);
+        
+        //为墙面安装门
+        createDoor_left(100, 180, 2, 0, -700, 90, 700, "左门1");
+        createDoor_right(100, 180, 2, 0, -500, 90, 700, "右门1");
+        createDoor_left(100, 180, 2, 0, 500, 90, 700, "左门2");
+        createDoor_right(100, 180, 2, 0, 700, 90, 700, "右门2");
+        //为墙面安装窗户
+        createWindow(100, 100, 2, 0, -900, 90, 700, "窗户");
+        createWindow(100, 100, 2, 0, 900, 90, 700, "窗户");
+        createWindow(100, 100, 2, 0, -200, 90, 700, "窗户");
+        createWindow(100, 100, 2, 0, 200, 90, 700, "窗户"); 
+      } 
+
+
+      function init() { 
+        initScene()
+        initRenderer();
+        initCamera();
+        createWallMaterail()
+        initContent()
+        initLight();
+        initControls()
+        new THREE.ThreeJs_Composer(renderer, scene, camera);
+        document.addEventListener('resize', onWindowResize, false);
+      }
+
+       // 窗口变动触发的方法
+       function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        } 
+     
+      function render() {
+        requestAnimationFrame(render);
+        renderer.render(scene, camera);
+        // composer.render();
+        update();
+      }
+
+    // 更新控件
+    function update() {
+      stats.update();
+      controls.update();
+      // TWEEN.update();
+      // RollTexture.offset.x += 0.001;
+    }
+      init()
+      render(); 
+//       var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
+// controls.addEventListener('change', render);//监听鼠标、键盘事件
+  </script>
+</body>
+</html>

@@ -445,8 +445,17 @@
             z: 18.298152923583984
           }); 
           labelGroup.add(label2)
-
+           let xy =  createVector(25.109309768676758, 10, 18.298152923583984, Camera, window.innerWidth, window.innerWidth)
+           console.log(xy)
         }  
+
+        function createVector(x, y, z, camera, width, height) {
+          var p = new THREE.Vector3(x, y, z);
+          var vector = p.project(camera);
+          vector.x = (vector.x + 1) / 2 * width;
+          vector.y = -(vector.y - 1) / 2 * height;
+          return vector;
+        }
         
 
           // 渲染 

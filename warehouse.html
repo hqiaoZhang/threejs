@@ -37,20 +37,29 @@
   <script src="./js/FXAAShader.js"></script>
   <script src="./js/ShaderPass.js"></script>
   <script src="./js/CopyShader.js"></script>
-  <script src="./utils/composer.js"></script>
+  <script src="./js/Tween.js"></script>
+  <script src="./utils/composer.js"></script> 
+  <script src="./utils/modules.js"></script>
+  <script src="./utils/config.js"></script>
 </head>
 
 <body>
     <div id="label"></div>
     <div id="container"></div>
   <script>
-     var stats = initStats()
-     var scene, camera, renderer, light;
-     var width = window.innerWidth
-     var height = window.innerHeight
+     var stats = initStats();
+      var scene, camera, renderer, controls, light, composer,transformControls, options;
+      var matArrayA = []; //内墙
+      var matArrayB = []; //外墙
+      var group = new THREE.Group();
+    
 
      var matArrayA = []; //内墙
      var matArrayB = []; //外墙
+
+      var width = window.innerWidth
+     var height = window.innerHeight
+
       // 初始化场景
       function initScene() {
         scene = new THREE.Scene()
@@ -300,19 +309,50 @@
         createWindow(100, 100, 2, 0, 900, 90, 700, "窗户");
         createWindow(100, 100, 2, 0, -200, 90, 700, "窗户");
         createWindow(100, 100, 2, 0, 200, 90, 700, "窗户"); 
+        
       } 
 
+      // 初始化GUI
+      function initGui() {
+          options = new function () {
+              this.batchNo ='';this.qty = 0;this.qtyUom ='';this.qty2 = 0;
+          };
+          var gui = new dat.GUI();
+          gui.domElement.style = 'position:absolute;top:50px;right:0px;height:600px';
+          gui.add(options, 'batchNo').name("物料批号：").listen();
+          gui.add(options, 'qty').name("数量：").listen();
+          gui.add(options, 'qtyUom').name("单位：").listen();
+          gui.add(options, 'qty2').name("件数：").listen();
+      }
 
+       
+         
       function init() { 
+        initMat()
         initScene()
+        addSkybox( 10000, scene );
         initRenderer();
         initCamera();
         createWallMaterail()
         initContent()
         initLight();
         initControls()
-        new THREE.ThreeJs_Composer(renderer, scene, camera);
+        initGui()
+        addArea(0,0,1000,500,scene,"ID1$库区1号","FF0000",20,"左对齐"); 
+
         document.addEventListener('resize', onWindowResize, false);
+        addShelf(scene);
+        
+        //添加货物
+        var shelf_list = GET_SHELF_LIST();
+        for(var i = 1; i <= GET_LAYER_NUM(); i++){
+            for(var j = 1; j <= GET_COLUMN_NUM(); j++){
+                for(var k = 1; k <= shelf_list.length; k++) {
+                    addOneUnitCargos(shelf_list[k-1].shelfId, i, j, scene);
+                }
+            }
+        } 
+        composer = new THREE.ThreeJs_Composer(renderer, scene, camera, options);
       }
 
        // 窗口变动触发的方法
@@ -333,7 +373,7 @@
     function update() {
       stats.update();
       controls.update();
-      // TWEEN.update();
+      TWEEN.update();
       // RollTexture.offset.x += 0.001;
     }
       init()

@@ -33,7 +33,7 @@
     }
   </style>
   <!--引入three.js三维引擎-->
-  <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/build/three.min.js"></script>
+  <script src="./js/three.js"></script> 
   <!-- 引入threejs扩展控件OrbitControls.js -->
   <script src="http://www.yanhuangxueyuan.com/versions/threejsR92/examples/js/controls/OrbitControls.js"></script>
 
@@ -63,9 +63,10 @@
         var loader = new THREE.ObjectLoader();
         let timeArr = []
 
-        loader.load("./pump/pump.json", json,onProgress);
+        loader.load("./pump/pump.json", json, onProgress);
 
         function json(Object3D) {
+          console.log(Object3D)
           scene.add(Object3D);
           mixer = new THREE.AnimationMixer(Object3D);
           action = mixer.clipAction(Object3D.animations[0]);

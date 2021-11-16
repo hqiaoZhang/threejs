@@ -48,7 +48,7 @@ THREE.ThreeJs_Composer = function (_renderer, _scene, _camera, _options, _select
       _options.qtyUom = "kg";
       _options.qty2 = "10";
       _options.selectObj = intersects[0].object.name;
-      // _selectobject.push( intersects[0].object );
+      _selectobject.push( intersects[0].object );
     }
 
     if (intersects[0].object.name == "左门1") {

@@ -41,24 +41,34 @@
   <script src="./utils/composer.js"></script> 
   <script src="./utils/modules.js"></script>
   <script src="./utils/config.js"></script>
+  <script src="./js/echarts/echarts.min.js"></script>
 </head>
 
 <body>
     <div id="label"></div>
     <div id="container"></div>
+    <video id="video" autoplay loop muted>
+      <source src="./video/videoPlane.mp4">
+    </video>
   <script>
      var stats = initStats();
       var scene, camera, renderer, controls, light, composer,transformControls, options;
+      var RollMat, RollTexture
       var matArrayA = []; //内墙
       var matArrayB = []; //外墙
       var group = new THREE.Group();
-    
-
-     var matArrayA = []; //内墙
-     var matArrayB = []; //外墙
+      var mouse, raycaster;
+      var rollOverMesh, rollOverMaterial;
+      var cubeGeo, cubeMaterial;
+      var objects = [];
+      var floor, gridHelper;
+      var selectobject = []; 
+      var barChart
+      var matArrayA = []; //内墙
+      var matArrayB = []; //外墙
 
       var width = window.innerWidth
-     var height = window.innerHeight
+      var height = window.innerHeight
 
       // 初始化场景
       function initScene() {
@@ -102,7 +112,7 @@
         document.body.appendChild(renderer.domElement);
       }
 
-      // 初始化轨迹球控件
+      // 初始化轨迹控件
     function initControls() {
       controls = new THREE.OrbitControls( camera, renderer.domElement );
       controls.enableDamping = true;
@@ -114,8 +124,7 @@
       // 最大角度
       controls.maxPolarAngle = Math.PI/2.2;
     } 
-   
-      
+ 
       //创建地板
       function createFloor(){
         var loader = new THREE.TextureLoader();
@@ -273,6 +282,105 @@
         matArrayB.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //左   0xafc0ca :灰色
         matArrayB.push(new THREE.MeshPhongMaterial({color: 0xafc0ca}));  //右
     } 
+    
+    function createRollMat() {
+      RollMat = new THREE.MeshLambertMaterial();
+      RollTexture = new THREE.TextureLoader().load( "./images/biaoyu.png", function( map ) {
+        RollMat.map = map;
+          RollMat.needsUpdate = true;
+          RollMat.transparent = true;
+          RollMat.side = THREE.DoubleSide;
+      } );
+      RollTexture.wrapS = THREE.RepeatWrapping;
+      RollTexture.wrapT=THREE.RepeatWrapping; 
+    } 
+    
+    //region 滚动的物体
+    function addRollPlane(scene) {
+        var geometry = new THREE.PlaneGeometry( 400, 20 );
+        var obj = new THREE.Mesh( geometry, RollMat );
+        obj.position.set(0,150,-690);
+        scene.add( obj );
+    }
+    //endregion
+
+    function initEcharts() {
+      barChart = echarts.init( $("<canvas width='512' height='512'></canvas>")[0] );
+      option = {
+          color: ['#3398DB'],
+          tooltip : {
+              trigger: 'axis',
+              axisPointer : {
+                  type : 'shadow'
+              }
+          },
+          grid: {
+              left: '3%',
+              right: '4%',
+              bottom: '3%',
+              containLabel: true
+          },
+          xAxis : [
+              {
+                  type : 'category',
+                  data : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                  axisTick: {
+                      alignWithLabel: true
+                  }
+              }
+          ],
+          yAxis : [
+              {
+                  type : 'value'
+              }
+          ],
+          series : [
+              {
+                  name:'直接访问',
+                  type:'bar',
+                  barWidth: '60%',
+                  data:[10, 52, 200, 334, 390, 330, 220]
+              }
+          ]
+      };
+      barChart.setOption(option);
+      // 图表渲染结束 
+      barChart.on('finished', function () {
+        // 获取图表图片
+        var infoEchart = new THREE.TextureLoader().load( barChart.getDataURL() );
+        
+        // 基础材质
+        var infoEchartMaterial = new THREE.MeshBasicMaterial({
+          transparent: true,
+          map: infoEchart,
+          side: THREE.DoubleSide
+        });
+
+        var echartPlane = new THREE.Mesh(new THREE.PlaneGeometry(100,100),infoEchartMaterial);
+        echartPlane.position.set(100, 150, 0);
+        scene.add(echartPlane);
+
+      }); 
+    }
+
+    //region 放置视频面板
+    function addVideoPlane( x,y,z,width,length,scene,videoId ) {
+      var planeGeometry = new THREE.PlaneGeometry(width, length);
+      var material = new THREE.MeshPhongMaterial();
+      material.side = THREE.DoubleSide;
+      var video = document.getElementById(videoId);
+      var texture = new THREE.VideoTexture(video);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.format = THREE.RGBFormat;
+      material.map = texture;
+      var mesh = new THREE.Mesh(planeGeometry, material);
+      mesh.position.set(x,y,z);
+      scene.add(mesh);
+    }
+    //endregion
+
+
 
       // 初始化模型
       function initContent() {
@@ -313,24 +421,75 @@
       } 
 
       // 初始化GUI
+      // function initGui() {
+      //     options = new function () {
+      //         this.batchNo ='';this.qty = 0;this.qtyUom ='';this.qty2 = 0;
+      //     };
+      //     var gui = new dat.GUI();
+      //     gui.domElement.style = 'position:absolute;top:50px;right:0px;height:600px';
+      //     gui.add(options, 'batchNo').name("物料批号：").listen();
+      //     gui.add(options, 'qty').name("数量：").listen();
+      //     gui.add(options, 'qtyUom').name("单位：").listen();
+      //     gui.add(options, 'qty2').name("件数：").listen();
+      // }
+
       function initGui() {
           options = new function () {
-              this.batchNo ='';this.qty = 0;this.qtyUom ='';this.qty2 = 0;
+              this.selectObj ='';
+              this.startMove = function() {
+                  scene.remove(floor);
+                  scene.add( gridHelper );
+                  scene.add( rollOverMesh );
+                  document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+                  document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+              };
+              this.endMove = function() {
+                  scene.remove(gridHelper);
+                  scene.remove(rollOverMesh);
+                  scene.add( floor );
+                  document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+                  document.removeEventListener( 'mousedown', onDocumentMouseDown, false );
+              };
           };
           var gui = new dat.GUI();
           gui.domElement.style = 'position:absolute;top:50px;right:0px;height:600px';
-          gui.add(options, 'batchNo').name("物料批号：").listen();
-          gui.add(options, 'qty').name("数量：").listen();
-          gui.add(options, 'qtyUom').name("单位：").listen();
-          gui.add(options, 'qty2').name("件数：").listen();
+          gui.add(options, 'selectObj').name("选中的物体:").listen();
+          gui.add(options, 'startMove').name("进入编辑模式").listen();
+          gui.add(options, 'endMove').name("退出编辑模式:").listen();
       }
 
-       
-         
+       function onDocumentMouseMove( event ) {
+        event.preventDefault();
+        mouse.set( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1 );
+        raycaster.setFromCamera( mouse, camera );
+        var intersects = raycaster.intersectObjects( objects );
+        if ( intersects.length > 0 ) {
+          var intersect = intersects[ 0 ];
+          rollOverMesh.position.copy( intersect.point ).add( intersect.face.normal );
+          rollOverMesh.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+        }
+        renderer.render(scene, camera);
+      }
+
+      function onDocumentMouseDown( event ) {
+        event.preventDefault();
+        mouse.set( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1 );
+        raycaster.setFromCamera( mouse, camera );
+        var intersects = raycaster.intersectObjects( objects );
+        if ( intersects.length > 0 ) {
+          var intersect = intersects[ 0 ];
+          var idx=selectobject.length-1; 
+          selectobject[idx].position.copy( intersect.point ).add( intersect.face.normal );
+          selectobject[idx].position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+          renderer.render(scene, camera);
+        }
+      } 
+    
       function init() { 
         initMat()
         initScene()
         addSkybox( 10000, scene );
+        addVideoPlane( 0, 60, -690, 200, 100 ,scene, 'video' );
         initRenderer();
         initCamera();
         createWallMaterail()
@@ -338,10 +497,44 @@
         initLight();
         initControls()
         initGui()
+        createRollMat()
+        addRollPlane(scene)
+        initEcharts()
         addArea(0,0,1000,500,scene,"ID1$库区1号","FF0000",20,"左对齐"); 
-
+        
+    
         document.addEventListener('resize', onWindowResize, false);
         addShelf(scene);
+        
+        // roll-over helpers
+      var rollOverGeo = new THREE.BoxBufferGeometry( 50, 50, 50 );
+      rollOverMaterial = new THREE.MeshBasicMaterial( { color: 0x00BFFF, opacity: 0.5, transparent: true } );
+      rollOverMesh = new THREE.Mesh( rollOverGeo, rollOverMaterial ); 
+
+        gridHelper = new THREE.GridHelper(2000,40);
+
+        // cubes
+        cubeGeo = new THREE.BoxBufferGeometry( 50, 50, 50 );
+        cubeMaterial = new THREE.MeshLambertMaterial( { color: 0xfeb74c, map: new THREE.TextureLoader().load( './images/box.png' ) } ); 
+        var voxel = new THREE.Mesh( cubeGeo, cubeMaterial );
+        voxel.position.set(25,25,25);
+        voxel.name = "货物$1";
+        scene.add( voxel );
+        objects.push( voxel );
+        var voxel2 = voxel.clone();
+        voxel2.position.set(225,25,25);
+        voxel2.name = "货物$2";
+        scene.add( voxel2 );
+        objects.push( voxel2 );
+        var voxel3 = voxel.clone();
+        voxel3.position.set(-225,25,25);
+        voxel3.name = "货物$3";
+        scene.add( voxel3 );
+        objects.push( voxel3 ); 
+
+          
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2(); 
         
         //添加货物
         var shelf_list = GET_SHELF_LIST();
@@ -352,7 +545,10 @@
                 }
             }
         } 
-        composer = new THREE.ThreeJs_Composer(renderer, scene, camera, options);
+        composer = new THREE.ThreeJs_Composer(renderer, scene, camera, options, selectobject);
+
+         
+        
       }
 
        // 窗口变动触发的方法
@@ -374,12 +570,10 @@
       stats.update();
       controls.update();
       TWEEN.update();
-      // RollTexture.offset.x += 0.001;
+      RollTexture.offset.x += 0.001;
     }
       init()
-      render(); 
-//       var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
-// controls.addEventListener('change', render);//监听鼠标、键盘事件
+      render();  
   </script>
 </body>
 </html>

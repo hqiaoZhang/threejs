@@ -4,7 +4,7 @@
  * @Email: 991034150@qq.com 
  * @Description: 3D仓库显示模型存放的地方
  * @Last Modified by: zhanghongqiao
- * @Last Modified time: 2021-11-02 17:25:54
+ * @Last Modified time: 2021-11-03 11:20:50
  */
 
 
@@ -67,6 +67,7 @@ function addSkybox( size,scene ) {
       './images/skybox/远山_BK.jpg', // back
       './images/skybox/远山_FR.jpg'  // front
   ];
+  // 环境贴图
   var skyboxCubemap = new THREE.CubeTextureLoader().load( urls );
   skyboxCubemap.format = THREE.RGBFormat;
 

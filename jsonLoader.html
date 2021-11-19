@@ -46,16 +46,15 @@
     var ambient = new THREE.AmbientLight(0x444444);
     scene.add(ambient); 
     let mixer = null;
+    var action = null;
     var loader=new THREE.ObjectLoader();
     loader.load('./json/app.json',function(object){
-       scene.add(object)
-
-        mixer = new THREE.AnimationMixer(object);
-        action = mixer.clipAction(object.animations[0]);
-        action.timeScale = vm.timeScale 
-        action.play()
-        object.animations[0].duration=47.2 
-
+      scene.add(object) 
+      mixer = new THREE.AnimationMixer(object);
+      action = mixer.clipAction(object.animations[0]);
+      action.timeScale = 3.5
+      action.play()
+      object.animations[0].duration=47.2  
     })
     
     /**
@@ -76,11 +75,34 @@
     renderer.setSize(width, height);//设置渲染区域尺寸
     renderer.setClearColor(0xb9d3ff, 1); //设置背景颜色
     document.body.appendChild(renderer.domElement); //body元素中插入canvas对象
-    //执行渲染操作   指定场景、相机作为参数
+     
+    // ========
+    let clock = new THREE.Clock();
+    var FPS = 30;
+    var rtime = 1 / FPS;
+    var timeS = 0;
     function render() {
-      renderer.render(scene,camera);//执行渲染操作
-  }
-render();
+
+      var rinter = clock.getDelta();
+      timeS = timeS + rinter;
+      if (timeS > rtime) {
+        renderer.render(scene, camera);
+        timeS = 0;
+
+      }
+      // if (action) {
+      //   vm.time = action.time
+
+      // }
+
+      if (mixer) {
+        mixer.update(rinter);
+
+      }
+
+      requestAnimationFrame(render);
+    }
+    render();
 var controls = new THREE.OrbitControls(camera,renderer.domElement);//创建控件对象
 controls.addEventListener('change', render);//监听鼠标、键盘事件
   </script>
